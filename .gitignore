@@ -1,0 +1,26 @@
+# Real contact data. Addresses belonging to actual people - never publish.
+app/data.js
+data/
+drafts/
+inputs/*
+!inputs/profile.example.md
+state/
+CONTACTS.md
+NEEDS_YOU.md
+
+# Superseded prototypes. today.html embeds the real contact list inline.
+viewer/
+
+# Personal strategy and operating docs.
+CLAUDE.md
+PLAN.md
+SCHEDULE.md
+RUNBOOK.md
+STATUS.md
+.claude/
+
+.idea/
+__pycache__/
+*.pyc
+.DS_Store
+sync_preview.sh

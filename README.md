@@ -1,0 +1,87 @@
+# Career pipeline
+
+A job-search system that does the parts a computer is good at and refuses to do
+the part it isn't.
+
+It reads hiring threads, works out what each company actually does, finds a real
+human at that company from public commit history, and drafts a message. Then it
+stops, because the last step is a person writing to another person and there is
+no version of automating that which works.
+
+## The two halves
+
+**A pipeline** (Python, no dependencies) that keeps a JSONL store of companies
+and contacts, and **an app** (one HTML file, no build step) that decides what to
+do each morning and hands you the message to send.
+
+```
+sources  →  enrich  →  find a human  →  research a fact  →  you send it
+[auto]      [auto]      [auto]           [you]              [you]
+```
+
+The split is the whole design. Everything left of "research a fact" is cheap and
+scales, so it runs on cron. Everything right of it is the part that decides
+whether a message gets a reply, so it stays manual and deliberately slow: one
+message a day, two maximum.
+
+## The pipeline
+
+```bash
+python3 scripts/run.py <job>
+```
+
+| Job | Cadence | What it does |
+|---|---|---|
+| `ingest-hn` | monthly | Pulls companies from HN "Who is Hiring" via the Algolia API |
+| `ingest-nextplay` | weekly | Same, from a newsletter's public Substack archive |
+| `enrich` | weekly | Reads each posting: what they build, stage, location, work-auth tier |
+| `resolve-contacts` | daily | Finds a real address: posting text, then GitHub commit authorship |
+| `queue` | daily | Ranks, picks the day's contacts, writes drafts |
+| `export-app` | daily | Regenerates `app/data.js` for the app |
+| `mark` | as needed | `mark <email> sent\|replied\|bounced\|dead` |
+
+Judgment steps shell out to the `claude` CLI, so it runs off a Claude
+subscription and needs no API key. A usage limit raises `LLMUnavailable`, halts
+the job, and leaves the backlog intact rather than marking 600 records failed.
+
+Enrichment parses the posting header with a regex first and only falls back to a
+model, batched 40 at a time across 5 workers. That took a run of 592 companies
+from roughly three hours to five and a half minutes.
+
+## The app
+
+Open `app/index.html`. React 18 and Babel from a CDN, no npm, no bundler, works
+from `file://`.
+
+- **Today** — decides for you. Follow-ups due, then live threads, then new sends.
+  Each card fills the right template with the person's name and the researched
+  fact, tells you whether to use email or LinkedIn, and gives you one button.
+- **People** — every contact, their status, and which channel you used, so a
+  follow-up knows where to go.
+- **Process** — what the pipeline is doing and why the order is what it is.
+- **Templates** — a decision tree over seven messages. Three of its paths refuse
+  to give you a template, which is the point.
+
+State lives in `localStorage` keyed by email and is merged over the generated
+data, so refreshing the dataset never wipes what you have tracked.
+
+## Rules the code enforces
+
+- **Never sends email.** Drafts are files and prefilled compose windows. A human
+  presses send, every time.
+- **Never invents an address.** `verified` means it appeared in a job posting or
+  in a git commit. Unverifiable is `null`.
+- **No draft without a real specific fact.** Thin context logs
+  `insufficient_context` and skips rather than generating filler.
+- **A follow-up needs no account access.** The seven-day flag is date arithmetic
+  on the last touch. Only "did they reply" needs a human, and that is one click.
+- **Two unanswered touches means dead.** The app surfaces those to be closed.
+
+## Data
+
+Plain JSONL, atomic whole-file writes, an flock job lock so overlapping cron
+runs cannot silently discard each other's work. Safe to kill any job mid-run.
+
+The real store is gitignored. `app/data.example.js` holds twelve invented people
+at invented companies on the RFC 2606 `.example` TLD, so a fresh clone runs with
+demo data and nobody's actual inbox ends up in a public repository.
