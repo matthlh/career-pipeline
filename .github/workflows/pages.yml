@@ -1,0 +1,57 @@
+name: Deploy app to Pages
+
+# Publishes app/ as the site root. There is no build step - index.html pulls
+# React and Babel from cdnjs at runtime - so this uploads the directory as-is.
+#
+# app/data.js is gitignored, so the published copy has no real contact data.
+# data.example.js only assigns window.SEED when data.js is absent, which on
+# Pages it always is, so a visitor sees the twelve invented people instead.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a running deploy - a half-published site is worse than a slow one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # The same check CLAUDE.md asks for before a commit, enforced at the point
+      # where it actually matters. Only RFC 2606 reserved domains may ship: the
+      # .example TLD used by data.example.js, and example.com for the FROM
+      # placeholder. Anything else is a real person's inbox and fails the build.
+      - name: Refuse to publish real addresses
+        run: |
+          leaks=$(grep -rhoE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' app/ \
+            | grep -viE '@[a-zA-Z0-9.-]*\.example$|@example\.(com|org|net)$' \
+            | sort -u) || true
+          if [ -n "$leaks" ]; then
+            echo "::error::Real-looking addresses found in app/ - refusing to publish."
+            echo "$leaks"
+            exit 1
+          fi
+          echo "No real addresses in app/."
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
