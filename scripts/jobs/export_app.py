@@ -90,35 +90,64 @@ def _apply_url(posting):
     return m.group(1).rstrip('.,)')
 
 
-def _score(person):
-    """Rank the queue. A researched fact is worth more than everything else
-    combined, because the fact is what makes the message not-spam."""
+# Weights for everything below the source. Named rather than inlined so
+# SOURCE_BONUS can be derived from their sum instead of guessed: add a new signal
+# below and the source bonus grows with it, so Next Play cannot quietly stop
+# leading the list the way it did when the bonus was a flat 40.
+FACT_WEIGHT = 100
+LOC_WEIGHT = (35, 28, 20, 12, 6, 0)
+ROLE_WEIGHT = (30, 22, 16, 12, 0)
+STAGE_WEIGHT = (14, 8, 4, 0)
+FLAG_WEIGHTS = {"name": 30, "github": 20, "not_role_inbox": 15,
+                "intern": 12, "apply": 6, "remote": 4}
+
+MAX_TIEBREAK = (FACT_WEIGHT + LOC_WEIGHT[0] + ROLE_WEIGHT[0] + STAGE_WEIGHT[0]
+                + sum(FLAG_WEIGHTS.values()))
+
+# One more than a perfect score on everything else, so the source sorts first
+# outright rather than merely heavily - which is what queue_daily.rank has always
+# done, source_rank being the first element of its tuple.
+SOURCE_BONUS = MAX_TIEBREAK + 1
+
+
+def _tiebreak(person):
+    """Everything the ranking considers *after* the source."""
     s = 0
+    # A researched fact outweighs every remaining signal combined, because the
+    # fact is what makes the message not-spam.
     if person["fact"]:
-        s += 100
-    # Stated preferences, Sept 6 2026: Next Play over HN, SF > NY > US > Vancouver,
-    # AI-app > front-end > GTM > forward-deployed. Weighted below the fact, because a
-    # perfectly-located company with nothing specific to say is still a spam email.
-    s += 40 if person["source"] == "next_play" else 0
-    s += (35, 28, 20, 12, 6, 0)[person["locRank"]]
-    s += (30, 22, 16, 12, 0)[person["roleRank"]]
+        s += FACT_WEIGHT
+    # Stated preferences, Sept 6 2026: SF > NY > US > Vancouver, and AI-app >
+    # front-end > GTM > forward-deployed. Below the fact, because a perfectly
+    # located company with nothing specific to say is still a spam email.
+    s += LOC_WEIGHT[person["locRank"]]
+    s += ROLE_WEIGHT[person["roleRank"]]
     # Startups first: the founder reads their own email and there is no req
     # number to be filtered by. queue_daily.rank has always sorted on this;
     # leaving it out here made the app's order disagree with the queue's.
-    s += (14, 8, 4, 0)[person["stageRank"]]
+    s += STAGE_WEIGHT[person["stageRank"]]
     if person["name"]:
-        s += 30
+        s += FLAG_WEIGHTS["name"]
     if person["method"] == "github_commits":
-        s += 20
+        s += FLAG_WEIGHTS["github"]
     if not person["roleInbox"]:
-        s += 15
+        s += FLAG_WEIGHTS["not_role_inbox"]
     if person["mentionsIntern"]:
-        s += 12
+        s += FLAG_WEIGHTS["intern"]
     if person["applyUrl"]:
-        s += 6
+        s += FLAG_WEIGHTS["apply"]
     if person["remote"] in ("remote", "hybrid"):
-        s += 4
+        s += FLAG_WEIGHTS["remote"]
     return s
+
+
+def _score(person):
+    """Rank the queue. Source first and on its own - Next Play is curated, small,
+    and skews toward the roles Matt actually wants, so all four of those come
+    before the 184 HN contacts even when an HN contact is better on every other
+    axis. Everything else breaks ties inside a source."""
+    bonus = SOURCE_BONUS if person["source"] == "next_play" else 0
+    return bonus + _tiebreak(person)
 
 
 def person(contact, company, research):

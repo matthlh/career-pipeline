@@ -30,9 +30,37 @@ class Score(unittest.TestCase):
                            export_app._score(person(**worse)), why)
 
     def test_a_researched_fact_outweighs_any_single_other_signal(self):
+        # Within one source. Source itself sits above the fact - see below.
         self.assert_prefers({"fact": "they wrote X"},
-                            {"source": "next_play", "locRank": prefs.LOC_SF},
+                            {"locRank": prefs.LOC_SF, "roleRank": prefs.ROLE_AI},
                             "the fact is what makes a message not spam")
+
+    def test_next_play_leads_outright_not_merely_heavily(self):
+        # Sept 7 2026: the source is the first element of queue_daily.rank's
+        # tuple, so it decides the order on its own there. The app scored it as
+        # a flat +40 and let a good HN contact outrank a Next Play one, which is
+        # the app and the queue disagreeing about who is at the top of the list.
+        best_hn = person(fact="they wrote X", locRank=prefs.LOC_SF,
+                         roleRank=prefs.ROLE_AI, stageRank=prefs.STAGE_RANK["seed"],
+                         name="Dana Okonkwo", method="github_commits",
+                         mentionsIntern=True, applyUrl="https://x.example/apply",
+                         remote="remote")
+        worst_next_play = person(source="next_play", roleInbox=True)
+        self.assertGreater(export_app._score(worst_next_play),
+                           export_app._score(best_hn),
+                           "Next Play has to lead even at its worst against HN at its best")
+
+    def test_the_source_bonus_tracks_the_weights_below_it(self):
+        # The bonus is derived, not typed. If someone adds a signal to
+        # _tiebreak and forgets to widen the bonus, this catches it rather than
+        # the list quietly re-sorting one morning.
+        best = person(fact="x", locRank=prefs.LOC_SF, roleRank=prefs.ROLE_AI,
+                      stageRank=prefs.STAGE_RANK["seed"], name="Dana",
+                      method="github_commits", mentionsIntern=True,
+                      applyUrl="https://x.example/apply", remote="remote")
+        self.assertEqual(export_app._tiebreak(best), export_app.MAX_TIEBREAK,
+                         "MAX_TIEBREAK is no longer the maximum _tiebreak can return")
+        self.assertGreater(export_app.SOURCE_BONUS, export_app.MAX_TIEBREAK)
 
     def test_every_dimension_the_queue_sorts_on_also_moves_the_score(self):
         # If the queue ranks on it, the app has to rank on it too, or the top
