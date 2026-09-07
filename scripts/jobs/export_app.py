@@ -150,6 +150,13 @@ def _score(person):
     return bonus + _tiebreak(person)
 
 
+def order_key(p):
+    """The order the app reads people in. It never sorts - Today slices the list
+    as it arrives - so this is the ranking, and data.example.js has to be stored
+    in it too or the published demo shows an order the rules do not produce."""
+    return (-p["score"], p["company"].lower())
+
+
 def person(contact, company, research):
     """One row of the app's data, from one contact.
 
@@ -207,7 +214,7 @@ def run(argv=None):
     people = [person(c, companies.get(c["domain"], {}), research.get(c["email"], {}))
               for c in contacts]
 
-    people.sort(key=lambda p: (-p["score"], p["company"].lower()))
+    people.sort(key=order_key)
 
     payload = {
         "generated": datetime.date.today().strftime("%Y-%m-%d"),

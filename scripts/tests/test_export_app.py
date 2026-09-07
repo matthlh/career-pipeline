@@ -189,6 +189,20 @@ class ExampleData(unittest.TestCase):
             self.assertIn("ago", st, pid)
             self.assertNotIn("last", st, pid)
 
+    def test_scores_are_what_the_scorer_would_produce(self):
+        # The scores here are stored, not recomputed at load time, so a change
+        # to _score leaves them behind and the published demo ranks people by a
+        # rule that no longer exists. That is exactly what happened to the
+        # source weighting on Sept 7 2026.
+        for p in self._example()["people"]:
+            self.assertEqual(p["score"], export_app._score(p), p.get("company"))
+
+    def test_is_stored_in_the_order_the_app_reads_it_in(self):
+        people = self._example()["people"]
+        self.assertEqual([p["id"] for p in people],
+                         [p["id"] for p in sorted(people, key=export_app.order_key)],
+                         "the demo is not in ranked order")
+
     def test_no_person_carries_a_real_address(self):
         for p in self._example()["people"]:
             self.assertTrue(p["email"].endswith(".example"), p["email"])
