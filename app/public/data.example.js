@@ -418,25 +418,26 @@ window.SEED = window.SEED || {
     "peak": 2
    },
    "priya@stellwater.example": {
-    "status": "replied",
+    "status": "messaged",
     "channel": "email",
-    "ago": 2,
-    "firstAgo": 11,
-    "peak": 3
+    "ago": 3,
+    "firstAgo": 3,
+    "peak": 2
    },
    "wei@overtone.example": {
-    "status": "call done",
+    "status": "built it",
     "channel": "email",
-    "ago": 4,
-    "firstAgo": 22,
-    "peak": 5,
-    "said": "a small eval harness that scores retrieval answers against a hand-labelled set"
+    "ago": 1,
+    "firstAgo": 40,
+    "peak": 6,
+    "said": "a small eval harness that scores retrieval answers against a hand-labelled set",
+    "link": "https://github.com/example/eval-harness"
    },
    "marcus@fernbank.example": {
     "status": "messaged",
     "channel": "linkedin",
-    "ago": 3,
-    "firstAgo": 3,
+    "ago": 4,
+    "firstAgo": 4,
     "peak": 2,
     "alum": true
    },
@@ -464,13 +465,12 @@ window.SEED = window.SEED || {
     "ups": 1
    },
    "rowan@saltmarsh.example": {
-    "status": "built it",
+    "status": "messaged",
     "channel": "email",
-    "ago": 1,
-    "firstAgo": 40,
-    "peak": 6,
-    "said": "an eval harness",
-    "link": "https://github.com/example/eval-harness"
+    "ago": 12,
+    "firstAgo": 19,
+    "peak": 2,
+    "ups": 1
    },
    "ade@corvidae.example": {
     "status": "applied",
@@ -491,11 +491,11 @@ window.SEED = window.SEED || {
    40,
    34,
    26,
-   22,
-   11,
+   19,
+   12,
    9,
-   3,
-   1
+   4,
+   3
   ]
  }
 };

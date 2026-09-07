@@ -1,4 +1,5 @@
 import { peakOf } from "../rules";
+import { DEMO } from "../seed";
 import type { AppState, Counts, Person } from "../types";
 
 const FLOW: [string, boolean, string][] = [
@@ -67,8 +68,18 @@ function Funnel({ people, state }: { people: Person[]; state: AppState }) {
 
   return (
     <div className="card">
-      <h3>Reply rate: <span className={band[0]}>{rate.toFixed(1)}%</span></h3>
-      <p className="sm dim">{replied} of {sent} answered — {band[1]}.</p>
+      {/* On the published copy this is invented data, and a rate computed from
+          eight invented people is not a result. Saying so is cheaper than
+          having someone who knows the benchmarks assume the number is a claim. */}
+      <h3>Reply rate: <span className={DEMO ? "dim" : band[0]}>{rate.toFixed(1)}%</span></h3>
+      <p className="sm dim">
+        {DEMO
+          ? `${replied} of ${sent} answered — but these are twelve invented people, so the `
+            + "number is a demonstration and not a result. On a real run this is the figure "
+            + "that decides everything: the 2026 cold-email average is 3.4%, and above 10% is "
+            + "top decile."
+          : `${replied} of ${sent} answered — ${band[1]}.`}
+      </p>
       {rows.map(([label, n]) => (
         <div key={label} style={{ marginBottom: 7 }}>
           <div className="sm" style={{ display: "flex", justifyContent: "space-between" }}>
