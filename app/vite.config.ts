@@ -32,7 +32,12 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
-      output: { format: "iife", entryFileNames: "app.js", assetFileNames: "app[extname]" },
+      /* Hashed names, so a new build is picked up immediately rather than
+         whenever the CDN feels like it. Only data.js and data.example.js keep
+         fixed names, because index.html references them by hand and cron
+         rewrites one of them between builds. */
+      output: { format: "iife", entryFileNames: "assets/[name]-[hash].js",
+                assetFileNames: "assets/[name]-[hash][extname]" },
     },
   },
   test: { environment: "node", include: ["src/**/*.test.ts"] },
