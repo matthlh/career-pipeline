@@ -120,52 +120,60 @@ def _score(person):
     return s
 
 
+def person(contact, company, research):
+    """One row of the app's data, from one contact.
+
+    Split out of run() so the field set has a single definition that a test can
+    call with no store on disk - app/public/data.example.js has to carry exactly
+    these keys or a clone exercises different code paths than the real thing.
+    """
+    c, co, r = contact, company, research
+    posting = co.get("raw_posting") or ""
+    title = c.get("title") or ""
+    repo = title[len("commits to "):] if title.startswith("commits to ") else None
+    p = {
+        "id": c["email"].lower(),
+        "email": c["email"],
+        "name": c.get("name"),
+        "first": _first_name(c.get("name"), c["email"]),
+        "company": c.get("company_name") or c["domain"],
+        "domain": c["domain"],
+        "repo": repo,
+        "method": c.get("method"),
+        "github": c.get("github"),
+        "evidenceUrl": c.get("evidence_url"),
+        "roleInbox": _is_role_inbox(c["email"]),
+        "tier": co.get("tier") or "unknown",
+        "what": co.get("what_they_build"),
+        "location": co.get("location"),
+        "remote": co.get("remote_policy"),
+        "stage": co.get("stage"),
+        "mentionsIntern": bool(co.get("mentions_intern")),
+        "stageRank": prefs.stage_rank(co),
+        "source": ((co.get("sources") or [{}])[0].get("source")
+                   if prefs.source_rank(co) else "next_play"),
+        "locRank": prefs.location_rank(co),
+        "loc": prefs.LOC_LABEL[prefs.location_rank(co)],
+        "roleRank": prefs.role_rank(co),
+        "roleFit": prefs.ROLE_LABEL[prefs.role_rank(co)],
+        "postingUrl": (co.get("sources") or [{}])[0].get("url"),
+        "applyUrl": _apply_url(posting),
+        "fact": r.get("fact"),
+        "ask": r.get("ask"),
+        "cite": r.get("cite"),
+        "citeUrl": r.get("cite_url"),
+    }
+    p["score"] = _score(p)
+    return p
+
+
 def run(argv=None):
     companies = dict((c["domain"], c) for c in _read("companies.jsonl"))
     research = dict((r["email"], r) for r in _read("research.jsonl"))
     contacts = _read("contacts.jsonl")
 
-    people = []
-    for c in contacts:
-        co = companies.get(c["domain"], {})
-        r = research.get(c["email"], {})
-        posting = co.get("raw_posting") or ""
-        title = c.get("title") or ""
-        repo = title[len("commits to "):] if title.startswith("commits to ") else None
-        p = {
-            "id": c["email"].lower(),
-            "email": c["email"],
-            "name": c.get("name"),
-            "first": _first_name(c.get("name"), c["email"]),
-            "company": c.get("company_name") or c["domain"],
-            "domain": c["domain"],
-            "repo": repo,
-            "method": c.get("method"),
-            "github": c.get("github"),
-            "evidenceUrl": c.get("evidence_url"),
-            "roleInbox": _is_role_inbox(c["email"]),
-            "tier": co.get("tier") or "unknown",
-            "what": co.get("what_they_build"),
-            "location": co.get("location"),
-            "remote": co.get("remote_policy"),
-            "stage": co.get("stage"),
-            "mentionsIntern": bool(co.get("mentions_intern")),
-            "stageRank": prefs.stage_rank(co),
-            "source": ((co.get("sources") or [{}])[0].get("source")
-                       if prefs.source_rank(co) else "next_play"),
-            "locRank": prefs.location_rank(co),
-            "loc": prefs.LOC_LABEL[prefs.location_rank(co)],
-            "roleRank": prefs.role_rank(co),
-            "roleFit": prefs.ROLE_LABEL[prefs.role_rank(co)],
-            "postingUrl": (co.get("sources") or [{}])[0].get("url"),
-            "applyUrl": _apply_url(posting),
-            "fact": r.get("fact"),
-            "ask": r.get("ask"),
-            "cite": r.get("cite"),
-            "citeUrl": r.get("cite_url"),
-        }
-        p["score"] = _score(p)
-        people.append(p)
+    people = [person(c, companies.get(c["domain"], {}), research.get(c["email"], {}))
+              for c in contacts]
 
     people.sort(key=lambda p: (-p["score"], p["company"].lower()))
 

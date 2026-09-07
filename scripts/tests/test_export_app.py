@@ -111,3 +111,56 @@ class ApplyUrl(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ExampleData(unittest.TestCase):
+    """The invented dataset is what a clone runs on, and what the published copy
+    runs on. It is only worth having if it exercises the same code paths as the
+    real store, and it stops doing that the moment the two shapes drift - which
+    they had, silently, by five fields.
+    """
+
+    @staticmethod
+    def _example():
+        import json
+        path = os.path.join(os.path.dirname(os.path.dirname(HERE)),
+                            "app", "public", "data.example.js")
+        with open(path, encoding="utf-8") as fh:
+            src = fh.read()
+        head = "window.SEED = window.SEED || "
+        return json.loads(src[src.index(head) + len(head):].rstrip()[:-1])
+
+    def test_carries_exactly_the_fields_the_exporter_emits(self):
+        expected = set(export_app.person(
+            {"email": "a@b.example", "domain": "b.example"}, {}, {}))
+        for p in self._example()["people"]:
+            self.assertEqual(set(p), expected, p.get("company"))
+
+    def test_only_assigns_when_the_real_data_is_absent(self):
+        # `window.SEED = window.SEED || {...}` is the whole safety mechanism:
+        # a plain assignment would clobber the real data.js on a local machine.
+        path = os.path.join(os.path.dirname(os.path.dirname(HERE)),
+                            "app", "public", "data.example.js")
+        with open(path, encoding="utf-8") as fh:
+            self.assertIn("window.SEED = window.SEED || ", fh.read())
+
+    def test_is_stamped_as_the_demo(self):
+        # app/src/seed.ts keys DEMO off this exact value rather than the
+        # hostname, so one build behaves the same from file://, dev and Pages.
+        self.assertEqual(self._example()["generated"], "example")
+
+    def test_demo_progress_points_at_people_that_exist(self):
+        seed = self._example()
+        ids = set(p["id"] for p in seed["people"])
+        for pid in seed.get("demo", {}).get("p", {}):
+            self.assertIn(pid, ids, "demo progress references a person who is not in the set")
+
+    def test_demo_progress_is_relative_so_it_cannot_go_stale(self):
+        # Absolute dates here would read as "sent 400 days ago" a year from now.
+        for pid, st in self._example().get("demo", {}).get("p", {}).items():
+            self.assertIn("ago", st, pid)
+            self.assertNotIn("last", st, pid)
+
+    def test_no_person_carries_a_real_address(self):
+        for p in self._example()["people"]:
+            self.assertTrue(p["email"].endswith(".example"), p["email"])
