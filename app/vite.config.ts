@@ -1,4 +1,7 @@
 /// <reference types="vitest/config" />
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -15,6 +18,17 @@ function classicScript() {
   return {
     name: "classic-script",
     transformIndexHtml(html: string) {
+      /* data.example.js has a fixed name - index.html references it by hand -
+         so nothing about it changes when its contents do, and Pages serves
+         max-age=600. A visitor would spend ten minutes running new code against
+         the previous demo data, which looks like a bug rather than a cache.
+         data.js is deliberately not stamped: cron rewrites it between builds,
+         so a build-time stamp there would pin the browser to stale real data. */
+      const seed = join(process.cwd(), "public", "data.example.js");
+      const v = existsSync(seed)
+        ? createHash("sha256").update(readFileSync(seed)).digest("hex").slice(0, 8)
+        : "0";
+      html = html.replace('src="./data.example.js"', `src="./data.example.js?v=${v}"`);
       /* defer matters: a module script is deferred by the browser, a classic one
          in <head> is not, and running before <body> exists means createRoot has
          no #root to mount on. */
