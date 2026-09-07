@@ -19,9 +19,28 @@ import prefs
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "app", "data.js")
 
-# The address outreach is sent from. Lives here rather than in the app source
-# so the published copy does not carry it.
-FROM = "you@example.com"
+PROFILE = os.path.join(ROOT, "inputs", "profile.md")
+
+
+def _from_address():
+    """The address outreach is sent from.
+
+    Read out of the gitignored profile rather than written here: this file is
+    tracked and the repo is public, so a literal address would be scraped off
+    GitHub within a day. Falls back to a placeholder so a clone still runs.
+    """
+    env = os.environ.get("CAREER_FROM")
+    if env:
+        return env.strip()
+    if os.path.exists(PROFILE):
+        with io.open(PROFILE, encoding="utf-8") as fh:
+            m = re.search(r"^FROM:\s*(\S+@\S+)\s*$", fh.read(), re.M)
+        if m:
+            return m.group(1)
+    return "you@example.com"
+
+
+FROM = _from_address()
 
 ROLE_LOCALS = ("jobs", "career", "hiring", "recruit", "talent", "hello", "info",
                "team", "contact", "people", "apply", "join", "work", "hr")

@@ -12,3 +12,6 @@ specific to their problem rather than a generic summary of the resume):
   the bug you chased, the number you measured.] Good angle for: [the kinds of
   companies this is evidence for].
 - [Second one. Two or three total. More than that and the model picks badly.]
+
+# The address you send outreach from. Read by export_app.py; never committed.
+FROM: you@example.com
