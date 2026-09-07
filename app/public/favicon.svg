@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Outreach">
+  <!-- A funnel, because that is literally what the system is: 765 companies
+       narrow to 188 people narrow to one message a day. Solid shapes rather
+       than strokes, because strokes disappear at 16px.
+
+       The tile inverts with the OS theme so it keeps contrast against both a
+       light and a dark browser chrome. SVG favicons honour this media query. -->
+  <style>
+    .tile { fill: #2f5d3f }
+    .mark { fill: #f4ece2 }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #79b592 }
+      .mark { fill: #0e1512 }
+    }
+  </style>
+  <rect class="tile" width="32" height="32" rx="8"/>
+  <path class="mark" d="M7.2 8.4h17.6a1 1 0 0 1 .78 1.63L18.6 18.4v6.1a1 1 0 0 1-.55.9l-3.4 1.7a1 1 0 0 1-1.45-.9V18.4L6.42 10.03A1 1 0 0 1 7.2 8.4Z"/>
+</svg>

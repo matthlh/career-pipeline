@@ -49,6 +49,21 @@ export function alumUrl(p: Pick<Person, "company">): string {
     + encodeURIComponent(p.company + " University of British Columbia");
 }
 
+/* The same funnel as public/favicon.svg, inline so it takes the theme's accent
+   rather than shipping a second copy of the palette. 765 companies narrow to
+   188 people narrow to one message a day - the mark is the argument. */
+export function Logo({ size = 30 }: { size?: number }) {
+  return (
+    <svg className="logo" width={size} height={size} viewBox="0 0 32 32"
+         role="img" aria-label="Outreach">
+      <rect width="32" height="32" rx="8" fill="var(--go)" />
+      <path fill="var(--go-ink)"
+        d="M7.2 8.4h17.6a1 1 0 0 1 .78 1.63L18.6 18.4v6.1a1 1 0 0 1-.55.9l-3.4 1.7a1
+           1 0 0 1-1.45-.9V18.4L6.42 10.03A1 1 0 0 1 7.2 8.4Z" />
+    </svg>
+  );
+}
+
 export function Pills({ p }: { p: Person }) {
   const tier = TIER[p.tier] ?? TIER.unknown;
   return (

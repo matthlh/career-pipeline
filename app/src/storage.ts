@@ -59,12 +59,25 @@ export function loadTheme(): Theme {
   catch { return "auto"; }
 }
 
+export function isDark(t: Theme): boolean {
+  return t === "dark" || (t === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+}
+
 export function applyTheme(t: Theme): void {
   const root = document.documentElement;
   if (t === "auto") root.removeAttribute("data-theme");
   else root.setAttribute("data-theme", t);
   try { localStorage.setItem(THEME_KEY, t); } catch { /* private window */ }
-  const dark = t === "dark" || (t === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", dark ? "#14181a" : "#dfe9f2");
+    ?.setAttribute("content", isDark(t) ? "#14181a" : "#dfe9f2");
+}
+
+/* On "auto" the CSS follows the OS on its own, but the theme-color meta - the
+   colour the browser paints its own chrome with on mobile - is set in JS and
+   would keep yesterday's value when the OS flips at sunset. Returns a cleanup. */
+export function watchSystemTheme(current: () => Theme): () => void {
+  const mq = matchMedia("(prefers-color-scheme: dark)");
+  const onChange = () => { if (current() === "auto") applyTheme("auto"); };
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
 }

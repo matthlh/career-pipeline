@@ -1,4 +1,5 @@
 import { peakOf } from "../rules";
+import { ROPES } from "./Ropes";
 import { DEMO } from "../seed";
 import type { AppState, Counts, Person } from "../types";
 
@@ -19,20 +20,6 @@ const FLOW: [string, boolean, string][] = [
    "Thank-you inside 24 hours repeating what they said. Build the thing they told you to build. Two weeks later, send it. That last message is where referrals come from, and almost nobody sends it."],
 ];
 
-export const ROPES: [string, string][] = [
-  ["Send one message", "Open Today, take the top card, hit copy, send it. One. The point is to break the seal, not to be good at it."],
-  ["Send three, and mark them", "Same flow. Mark each one sent so the 7-day follow-up clock starts. You're learning what a good specific fact looks like, which is the only skill here."],
-  ["Do the UBC alum check on all three", "LinkedIn, company page, People tab, filter School: UBC. Notice how much better an alum thread feels. Toggle Alum on the card and the template changes."],
-  ["Find your own fact", "Take a card with no researched fact. Open their repo, read the last few commits, pick one real thing. Five minutes. Do this until it feels fast."],
-  ["Five quick-applies in 15 minutes", "Volume tier. workatastartup.com and the GitHub Summer 2027 lists. No tailoring. Time yourself so you learn it's genuinely three minutes each."],
-  ["First Sunday review", "Open People, sort by Follow up. Anything 7+ days with no reply gets template 4, once. Count what you sent. Say the number out loud to a person."],
-  ["Reply triage", "By now something has come back. Mark it Replied. A no is data, not a failure. Two unanswered touches means dead, move on."],
-  ["Ask question 3 on a call", "\"If you were me, what would you build in the next month?\" That answer is the spec for template 6, which is where referrals actually come from."],
-  ["Send template 5 within 24h", "After any call. Repeat back exactly what they said. This is the message that converts and almost nobody sends it."],
-  ["Build the thing", "One weekend. Whatever they told you in question 3. It doesn't need to be big, it needs to exist."],
-  ["Send template 6", "Two weeks after the call. You said X, I built it, here's the link. Do not ask for the referral. Roughly half the time it's offered."],
-  ["Steady state", "You now know the loop. Five applies, one real message, one problem, every day. Never miss two days in a row."],
-];
 
 /* Stage-to-stage conversion, which is the one number that says whether the
    messages are working. It reads `peak` rather than `status` so closing a
@@ -98,8 +85,8 @@ function Funnel({ people, state }: { people: Person[]; state: AppState }) {
   );
 }
 
-export function Process({ people, state, counts, setRope }:
-  { people: Person[]; state: AppState; counts: Counts; setRope: (i: number, on: boolean) => void }) {
+export function Process({ people, state, counts }:
+  { people: Person[]; state: AppState; counts: Counts }) {
   const done = state.ropes || {};
   const n = Object.values(done).filter(Boolean).length;
   const named = people.filter((p) => p.name).length;
@@ -159,20 +146,13 @@ export function Process({ people, state, counts, setRope }:
       <Funnel people={people} state={state} />
 
       <h2>The first two weeks</h2>
-      <p className="sm dim" style={{ marginTop: -4 }}>
-        {n} of {ROPES.length} done. One per day. They get easier and they are in this order for a
-        reason.
-      </p>
       <div className="card">
-        {ROPES.map(([h, body], i) => (
-          <div key={i} className={"chk" + (done[i] ? " on" : "")} onClick={() => setRope(i, !done[i])}>
-            <div className={"box" + (done[i] ? " on" : "")}>✓</div>
-            <div className="ct">
-              <b className="sm">Day {i + 1}. {h}</b>
-              <div className="sm dim">{body}</div>
-            </div>
-          </div>
-        ))}
+        <p className="sm" style={{ marginBottom: 0 }}>
+          {n} of {ROPES.length} done. The checklist follows you across every tab now — it is
+          the button in the bottom corner, showing whichever day you are on. It lived here
+          for a while, at the foot of a page you read once, which is the wrong place for the
+          one thing you are meant to look at daily.
+        </p>
       </div>
     </div>
   );

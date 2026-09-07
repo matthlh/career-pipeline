@@ -5,6 +5,7 @@
   --bg-a:#dfe9f2; --bg-b:#f4ece2;
   --ink:#12140f; --dim:#5d6154; --line:rgba(18,20,15,.13);
   --card:rgba(255,255,255,.72); --surface:#fff; --soft:rgba(255,255,255,.6);
+  --sheet:#fffdfa;
   --sunk:rgba(18,20,15,.06); --row:rgba(255,255,255,.45);
   --go:#2f5d3f; --go-ink:#fff; --warn:#8a5320; --red:#8d3a34;
   --warn-bg:rgba(255,244,230,.9); --warn-line:rgba(138,83,32,.35);
@@ -19,6 +20,7 @@
     --bg-a:#14181a; --bg-b:#1b1815;
     --ink:#e9e6df; --dim:#989c93; --line:rgba(233,230,223,.16);
     --card:rgba(255,255,255,.055); --surface:rgba(255,255,255,.09); --soft:rgba(255,255,255,.05);
+  --sheet:#1c2023;
     --sunk:rgba(0,0,0,.28); --row:rgba(255,255,255,.045);
     --go:#79b592; --go-ink:#0e1512; --warn:#d9a05f; --red:#e0908a;
     --warn-bg:rgba(217,160,95,.1); --warn-line:rgba(217,160,95,.32);
@@ -33,6 +35,7 @@
   --bg-a:#14181a; --bg-b:#1b1815;
   --ink:#e9e6df; --dim:#989c93; --line:rgba(233,230,223,.16);
   --card:rgba(255,255,255,.055); --surface:rgba(255,255,255,.09); --soft:rgba(255,255,255,.05);
+  --sheet:#1c2023;
   --sunk:rgba(0,0,0,.28); --row:rgba(255,255,255,.045);
   --go:#79b592; --go-ink:#0e1512; --warn:#d9a05f; --red:#e0908a;
   --warn-bg:rgba(217,160,95,.1); --warn-line:rgba(217,160,95,.32);
@@ -119,3 +122,57 @@ ol.steps li{margin-bottom:9px}
 .foot{margin-top:auto;padding-top:22px;font-size:12.5px;color:var(--dim)}
 .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .theme{border-radius:99px;width:36px;height:36px;padding:0;flex:none;font-size:15px;line-height:1}
+
+/* --- brand ------------------------------------------------------------- */
+.brand{display:flex;gap:11px;align-items:center;min-width:0}
+.logo{flex:none;border-radius:8px;display:block}
+.theme{display:flex;align-items:center;gap:6px;border-radius:99px;height:34px;
+  padding:0 13px;flex:none;font-size:13px;font-weight:600;line-height:1;color:var(--dim)}
+.theme-label{letter-spacing:.01em}
+@media (max-width:420px){ .theme-label{display:none} .theme{padding:0;width:34px;justify-content:center} }
+
+/* --- the first two weeks, as a panel that follows you ------------------- */
+
+/* Sits above the content but clear of the iOS home indicator. */
+.ropes-fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));
+  z-index:40;display:flex;align-items:center;gap:9px;max-width:min(320px,calc(100vw - 32px));
+  padding:10px 15px 10px 11px;border-radius:99px;background:var(--sheet);
+  border:1px solid var(--line);box-shadow:0 4px 18px var(--shadow);
+  font-size:13.5px;font-weight:560;text-align:left}
+.ropes-fab:hover{border-color:var(--go)}
+.ropes-fab.on{background:var(--go);color:var(--go-ink);border-color:transparent}
+.ropes-fab-count{flex:none;font-size:11.5px;font-weight:700;letter-spacing:.02em;
+  background:var(--tag-bg);color:var(--go);padding:4px 8px;border-radius:99px;line-height:1}
+.ropes-fab.on .ropes-fab-count{background:rgba(255,255,255,.22);color:inherit}
+.ropes-fab-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.ropes-panel{position:fixed;right:16px;bottom:calc(70px + env(safe-area-inset-bottom));
+  z-index:41;width:min(400px,calc(100vw - 32px));max-height:min(70vh,560px);
+  display:flex;flex-direction:column;background:var(--sheet);border:1px solid var(--line);
+  border-radius:18px;box-shadow:0 12px 40px var(--shadow);overflow:hidden;
+  opacity:0;transform:translateY(8px) scale(.98);pointer-events:none;
+  transition:opacity .16s ease,transform .16s ease}
+.ropes-panel.on{opacity:1;transform:none;pointer-events:auto}
+.ropes-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+  padding:15px 15px 11px;border-bottom:1px solid var(--line);flex:none}
+.ropes-body{overflow-y:auto;padding:2px 15px 13px;-webkit-overflow-scrolling:touch}
+
+/* The next unticked day. Everything above it is done and everything below is
+   not today's problem, so only this one gets emphasis. */
+.chk.now{position:relative}
+.chk.now .box{border-color:var(--go)}
+.chk.now::before{content:"";position:absolute;left:-15px;top:9px;bottom:9px;width:3px;
+  border-radius:0 3px 3px 0;background:var(--go)}
+
+@media (max-width:480px){
+  .ropes-fab{left:16px;right:16px;max-width:none;justify-content:center}
+  .ropes-panel{left:16px;right:16px;width:auto;bottom:calc(74px + env(safe-area-inset-bottom))}
+}
+/* Leave room so the button never covers the last line of the footer. */
+.foot{padding-bottom:64px}
+@media (prefers-reduced-motion:reduce){ .ropes-panel{transition:none} }
+
+/* --- drop an export anywhere -------------------------------------------- */
+.dropzone{position:fixed;inset:12px;z-index:60;display:grid;place-items:center;
+  border:2px dashed var(--go);border-radius:20px;background:var(--sheet);
+  font-size:16px;font-weight:600;color:var(--go);pointer-events:none}

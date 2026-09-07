@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { nextPeak, today } from "../rules";
 import { DEMO, REPO_URL, SEED } from "../seed";
-import { applyTheme, loadState, loadTheme, saveState, type Theme } from "../storage";
-import { toast } from "../ui";
+import { applyTheme, loadState, loadTheme, saveState, watchSystemTheme, type Theme } from "../storage";
+import { Logo, toast } from "../ui";
 import { People } from "./People";
 import { Process } from "./Process";
+import { RopesPanel } from "./Ropes";
 import { TemplatesTab } from "./TemplatesTab";
 import { Today } from "./Today";
 import type { AppState, PersonState } from "../types";
+
+const THEME_LABEL: Record<Theme, string> = { auto: "System", light: "Light", dark: "Dark" };
 
 type Tab = "today" | "people" | "process" | "templates";
 const TABS: [Tab, string][] = [
@@ -29,6 +32,13 @@ export function App() {
     saveState(state);
   }, [state]);
   useEffect(() => { applyTheme(theme); }, [theme]);
+
+  /* Keep the browser-chrome colour honest when the OS flips while the page is
+     open. The ref keeps the listener reading the current value without being
+     torn down and rebuilt on every theme change. */
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+  useEffect(() => watchSystemTheme(() => themeRef.current), []);
 
   /* Two ways in. Locally, data.js ships alongside the page. On a published copy
      there is no data.js - you import the export file, which carries the people
@@ -65,12 +75,10 @@ export function App() {
     URL.revokeObjectURL(a.href);
   }
 
-  function importState(ev: React.ChangeEvent<HTMLInputElement>) {
-    const f = ev.target.files?.[0];
-    /* Cleared before the read, not after: a file input fires no change event
-       when you pick the same file twice, and re-importing the export you just
-       fixed is the single most likely second attempt. */
-    ev.target.value = "";
+  /* Shared by the file picker and by dropping a file anywhere on the page.
+     On a phone the picker is fine; on a laptop, dragging the export out of
+     Downloads is one gesture instead of four. */
+  function readExport(f: File | undefined) {
     if (!f) return;
     const r = new FileReader();
     r.onerror = () => toast("Could not read that file");
@@ -85,22 +93,77 @@ export function App() {
     r.readAsText(f);
   }
 
+  function importState(ev: React.ChangeEvent<HTMLInputElement>) {
+    const f = ev.target.files?.[0];
+    /* Cleared before the read, not after: a file input fires no change event
+       when you pick the same file twice, and re-importing the export you just
+       fixed is the single most likely second attempt. */
+    ev.target.value = "";
+    readExport(f);
+  }
+
+  /* Drop anywhere on the window, not on a wrapper element. The app's root uses
+     display:contents so a wrapper has no box of its own, and dropping on the
+     empty space below the content would miss it. Depth counting rather than a
+     boolean because dragenter fires again for every child crossed. */
+  const [dragging, setDragging] = useState(false);
+  useEffect(() => {
+    let depth = 0;
+    const isFile = (e: DragEvent) =>
+      Array.from(e.dataTransfer?.types ?? []).includes("Files");
+    const enter = (e: DragEvent) => {
+      if (!isFile(e)) return;
+      depth++;
+      setDragging(true);
+    };
+    const leave = () => { depth = Math.max(0, depth - 1); if (!depth) setDragging(false); };
+    // Without preventDefault on dragover the browser navigates to the file
+    // instead of letting the page have it.
+    const over = (e: DragEvent) => { if (isFile(e)) e.preventDefault(); };
+    const drop = (e: DragEvent) => {
+      if (!isFile(e)) return;
+      e.preventDefault();
+      depth = 0;
+      setDragging(false);
+      readExport(e.dataTransfer?.files?.[0]);
+    };
+    window.addEventListener("dragenter", enter);
+    window.addEventListener("dragleave", leave);
+    window.addEventListener("dragover", over);
+    window.addEventListener("drop", drop);
+    return () => {
+      window.removeEventListener("dragenter", enter);
+      window.removeEventListener("dragleave", leave);
+      window.removeEventListener("dragover", over);
+      window.removeEventListener("drop", drop);
+    };
+  }, []);
+
   const sent = state.log.length;
 
   return (
     <>
+      {dragging && <div className="dropzone">Drop the export to load it</div>}
+
       <div className="head">
-        <div>
+        <div className="brand">
+          <Logo />
+          <div>
           <h1>Outreach</h1>
           <div className="sm dim">
             {DEMO ? "A job-search pipeline, running on invented data."
               : sent === 0 ? "Zero sent. That is still the only number that matters."
               : sent + " sent since you started. Keep the streak."}
           </div>
+          </div>
         </div>
-        <button className="theme" title={"Theme: " + theme}
-          onClick={() => setTheme(theme === "auto" ? "dark" : theme === "dark" ? "light" : "auto")}>
-          {theme === "auto" ? "◐" : theme === "dark" ? "☾" : "☀"}
+        {/* Says which mode is in force rather than leaving you to decode a
+            glyph. "System" is the default and the first stop in the cycle. */}
+        <button className="theme" aria-label={"Appearance: " + THEME_LABEL[theme] + ". Click to change."}
+          title={"Appearance: " + THEME_LABEL[theme]}
+          onClick={() => setTheme(theme === "auto" ? "light" : theme === "light" ? "dark" : "auto")}>
+          <span aria-hidden="true">{theme === "auto" ? "◐" : theme === "dark" ? "☾" : "☀"}</span>
+          <span className="theme-label">{THEME_LABEL[theme]}</span>
         </button>
       </div>
 
@@ -131,19 +194,31 @@ export function App() {
           <h3>No data loaded.</h3>
           <p className="sm dim">
             This copy is published without contact data on purpose — it would put real people's
-            addresses on a public URL. Export from the machine that has the pipeline, then Import
-            the file here. It carries the people and your progress together.
+            addresses on a public URL. There is no account to sign into and nothing is uploaded
+            anywhere; the data lives on whichever machine you put it on.
           </p>
-          <button className="tiny" onClick={() => file.current?.click()}>Import a data file</button>
+          <p className="sm dim">
+            <b>On the machine with the pipeline:</b> run{" "}
+            <code>python3 scripts/run.py app</code> and bookmark the file it opens. No server,
+            no terminal after the first time.
+          </p>
+          <p className="sm dim">
+            <b>Anywhere else:</b> hit <b>Export progress</b> there, then drop that file
+            anywhere on this page. It carries the people and your progress together, and stays
+            in this browser.
+          </p>
+          <button className="tiny" onClick={() => file.current?.click()}>Choose a file</button>
         </div>
       ) : (
         <>
           {tab === "today" && <Today people={people} state={state} upd={upd} />}
           {tab === "people" && <People people={people} state={state} upd={upd} />}
-          {tab === "process" && <Process people={people} state={state} counts={counts} setRope={setRope} />}
+          {tab === "process" && <Process people={people} state={state} counts={counts} />}
           {tab === "templates" && <TemplatesTab />}
         </>
       )}
+
+      <RopesPanel done={state.ropes || {}} setRope={setRope} />
 
       <div className="foot">
         <div className="row" style={{ marginBottom: 8 }}>
@@ -153,7 +228,7 @@ export function App() {
         </div>
         {counts.people} people from {counts.companies} companies, data generated{" "}
         {state.generated ?? SEED.generated}. Progress is saved in this browser only — export it
-        before you switch machines.
+        before you switch machines, or drop the file anywhere on this page to load it.
       </div>
     </>
   );
