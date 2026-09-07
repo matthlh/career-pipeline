@@ -5,6 +5,7 @@ import sys
 from collections import Counter
 
 sys.path.insert(0, __file__.rsplit("/scripts/", 1)[0] + "/scripts")
+import cronhealth
 import store
 
 ROOT = store.ROOT
@@ -68,6 +69,10 @@ def run():
                 and not store.contacts_for(c["domain"])),
         ),
     ]
+
+    cron_ok, cron_msg = cronhealth.check()
+    if not cron_ok:
+        lines[3:3] = ["", "> **THE SCHEDULE IS NOT RUNNING.** %s" % cron_msg, ""]
 
     if bounce_rate > 5.0 and len(sent) >= 20:
         lines += ["", "> **WARNING** bounce rate %.1f%% is over 5%%. pattern_guess queuing is OFF." % bounce_rate]

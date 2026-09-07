@@ -44,9 +44,17 @@ def run(argv=None):
         if _run("app tests", [npm, "test"], cwd=APP):
             failed.append("app tests")
 
+    # Reported, never fatal. A schedule that is not running is an environment
+    # problem, not a reason to block a commit - and a check that fails on
+    # something you cannot fix from here is a check you learn to ignore.
+    import cronhealth
+    ok, msg = cronhealth.check()
+    print("--- cron")
+    print(("    ok: " if ok else "    PROBLEM: ") + msg)
+
     if failed:
         raise RuntimeError("failed: " + ", ".join(failed))
-    return "all checks passed"
+    return "all checks passed" + ("" if ok else " (but the schedule is not running - see above)")
 
 
 def _which(name):

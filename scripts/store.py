@@ -6,7 +6,7 @@ this is fast, and it means a killed job never leaves a half-written file.
 import json
 import os
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
@@ -18,15 +18,39 @@ APPLICATIONS = os.path.join(DATA, "applications.jsonl")
 
 ENRICH_TTL_DAYS = 60
 
+# How long a written-but-unsent draft keeps its contact out of the queue.
+#
+# `queued` used to block forever, which made it a terminal state for anyone who
+# was drafted and not sent - and since the whole difficulty here is that drafts
+# do not get sent, the daily queue would have quietly eaten the contact pool at
+# two people a day while the send count stayed at zero. A fortnight-old draft is
+# stale anyway; letting it lapse costs one model call and keeps the pool honest.
+QUEUE_TTL_DAYS = 14
+
 
 def now():
-    return datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    # Naive UTC with a Z suffix, matching every timestamp already in the store.
+    # utcnow() itself is deprecated in 3.12; this is the same string without it.
+    return datetime.now(timezone.utc).replace(tzinfo=None).isoformat(timespec="seconds") + "Z"
+
+
+def utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def parse_ts(s):
+    """None rather than an exception on anything unparseable.
+
+    Callers use this to decide whether a record is stale, and one malformed
+    timestamp should not take down a whole job over a record it could simply
+    treat as undated.
+    """
     if not s:
         return None
-    return datetime.fromisoformat(s.replace("Z", ""))
+    try:
+        return datetime.fromisoformat(str(s).replace("Z", ""))
+    except (TypeError, ValueError):
+        return None
 
 
 def read(path):
@@ -120,7 +144,7 @@ def companies_in_state(*states):
 
 def stale_companies():
     """Enriched records past their TTL go back in the queue."""
-    cutoff = datetime.utcnow() - timedelta(days=ENRICH_TTL_DAYS)
+    cutoff = utcnow() - timedelta(days=ENRICH_TTL_DAYS)
     out = []
     for c in read(COMPANIES):
         if c.get("state") != "enriched":
@@ -160,14 +184,33 @@ def save_contacts(records):
     write(CONTACTS, records)
 
 
+# Reaching any of these means the person has actually heard from you, or never
+# should. They never come back.
+TERMINAL_STATES = ("contacted", "awaiting_reply", "replied", "dead", "bounced")
+
+
 def already_touched_emails():
-    """Every address that has been contacted or is dead. Never queue these again."""
+    """Addresses the queue must not pick.
+
+    Terminal states are permanent. `queued` is not a terminal state - it means a
+    draft exists, not that anyone received anything - so it only holds for
+    QUEUE_TTL_DAYS and then the contact is eligible again.
+    """
     blocked = set()
+    cutoff = utcnow() - timedelta(days=QUEUE_TTL_DAYS)
     for c in read(CONTACTS):
-        if c.get("state") in ("contacted", "awaiting_reply", "replied", "dead", "bounced", "queued"):
-            email = (c.get("email") or "").lower()
-            if email:
-                blocked.add(email)
+        state = c.get("state")
+        if state in TERMINAL_STATES:
+            pass
+        elif state == "queued":
+            ts = parse_ts(c.get("queued_at"))
+            if ts is not None and ts < cutoff:
+                continue          # draft went stale unsent; put them back in play
+        else:
+            continue
+        email = (c.get("email") or "").lower()
+        if email:
+            blocked.add(email)
     return blocked
 
 

@@ -133,7 +133,9 @@ def run(target=DAILY_TARGET, dry=0):
                                         prefs.describe(company)))
         return {"picked": len(picked), "dry": True}
 
-    day = datetime.utcnow().strftime("%Y-%m-%d")
+    # Local date, not UTC. The folder is named for the day *he* drafted them,
+    # and UTC files anything after 5pm Pacific under tomorrow.
+    day = datetime.now().strftime("%Y-%m-%d")
     out_dir = os.path.join(store.ROOT, "drafts", day)
     os.makedirs(out_dir, exist_ok=True)
 

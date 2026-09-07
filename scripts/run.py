@@ -67,13 +67,14 @@ def main():
 
 def _log_error(job):
     import json
-    from datetime import datetime
+    from datetime import datetime, timezone
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     path = os.path.join(root, "state", "errors.jsonl")
     with open(path, "a", encoding="utf-8") as f:
         f.write(json.dumps({
             "job": job,
-            "at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "at": datetime.now(timezone.utc).replace(tzinfo=None)
+                          .isoformat(timespec="seconds") + "Z",
             "error": traceback.format_exc()[-1000:],
         }) + "\n")
 

@@ -108,9 +108,14 @@ you find out weeks later by not having sent them anything.
 - `app/src/rules.test.ts` — every status maps to exactly one next action, dates
   are local rather than UTC, and the funnel's high-water mark never falls when
   you close a thread out.
+- `scripts/tests/test_store.py` — the store is where a bug destroys data rather
+  than annoying someone. Mostly: state that is easy to enter and impossible to
+  leave. `queued` was one of those.
 - `scripts/leakcheck.sh` — nothing git tracks contains an address outside the
   RFC 2606 reserved domains. The deploy runs the same script over the built
   artifact.
+- `scripts/cronhealth.py` — whether the schedule is actually running. Reported by
+  `check` and written into `STATUS.md`, never fatal.
 
 ## Data
 
