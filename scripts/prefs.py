@@ -53,7 +53,11 @@ def location_rank(company):
                           (_VAN, LOC_VAN), (_CA, LOC_CA)):
         if re.search(pattern, h):
             return rank
-    # A fully remote company with no geography stated is still workable from here.
+    # A fully remote company with *no* geography stated is still workable from
+    # here. One that states a region you are not in is not: "Remote (EU)" was
+    # falling through to this line and ranking above Vancouver.
+    if re.search(r"remote\s*\((?!us|usa|united states|canada|ca\b|north america)", h):
+        return LOC_ELSE
     if (company.get("remote_policy") or "") == "remote":
         return LOC_US
     return LOC_ELSE

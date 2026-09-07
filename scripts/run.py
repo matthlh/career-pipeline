@@ -16,9 +16,10 @@ JOBS = {
     "enrich": ("jobs.enrich", "Fill in what a company does, stage, size, work auth tier"),
     "resolve-contacts": ("jobs.resolve_contacts", "Find founder / eng lead emails"),
     "queue": ("jobs.queue_daily", "Build today's contact list and write drafts"),
-    "export-app": ("jobs.export_app", "Regenerate app/data.js for the React app"),
+    "export-app": ("jobs.export_app", "Regenerate app/public/data.js for the app"),
     "status": ("jobs.status", "Rewrite STATUS.md"),
     "mark": ("jobs.mark", "Record an outcome: mark <email> sent|replied|bounced|dead"),
+    "check": ("jobs.check", "Run the leak check, the pipeline tests and the app tests"),
 }
 
 
@@ -47,7 +48,7 @@ def main():
     print("=== %s ===" % job)
     import store
     try:
-        if job in ("status",):
+        if job in ("status", "check"):
             result = module.run(**kwargs)
         else:
             with store.JobLock("store"):
@@ -57,7 +58,7 @@ def main():
         _log_error(job)
         return 1
 
-    if job not in ("status",):
+    if job not in ("status", "check"):
         import jobs.status as status_job
         status_job.run()
     print("=== %s done: %s ===" % (job, result))
