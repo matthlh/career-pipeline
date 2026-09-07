@@ -7,6 +7,7 @@ file:// and there is no server in either target.
 Person state (status, channel, dates) lives in localStorage keyed by id, so
 re-running this adds new people without touching anything already tracked.
 """
+import datetime
 import io
 import json
 import os
@@ -17,7 +18,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import prefs
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-OUT = os.path.join(ROOT, "app", "data.js")
+# app/ is a Vite project now: public/ is copied to the build output verbatim,
+# so writing here means both `npm run dev` and `npm run build` pick the real
+# data up with no extra step. It is gitignored, and the Pages deploy runs from
+# a clean checkout where it does not exist, which is what makes the published
+# copy fall back to the invented people.
+OUT = os.path.join(ROOT, "app", "public", "data.js")
 
 PROFILE = os.path.join(ROOT, "inputs", "profile.md")
 
@@ -95,6 +101,10 @@ def _score(person):
     s += 40 if person["source"] == "next_play" else 0
     s += (35, 28, 20, 12, 6, 0)[person["locRank"]]
     s += (30, 22, 16, 12, 0)[person["roleRank"]]
+    # Startups first: the founder reads their own email and there is no req
+    # number to be filtered by. queue_daily.rank has always sorted on this;
+    # leaving it out here made the app's order disagree with the queue's.
+    s += (14, 8, 4, 0)[person["stageRank"]]
     if person["name"]:
         s += 30
     if person["method"] == "github_commits":
@@ -140,6 +150,7 @@ def run(argv=None):
             "remote": co.get("remote_policy"),
             "stage": co.get("stage"),
             "mentionsIntern": bool(co.get("mentions_intern")),
+            "stageRank": prefs.stage_rank(co),
             "source": ((co.get("sources") or [{}])[0].get("source")
                        if prefs.source_rank(co) else "next_play"),
             "locRank": prefs.location_rank(co),
@@ -159,7 +170,7 @@ def run(argv=None):
     people.sort(key=lambda p: (-p["score"], p["company"].lower()))
 
     payload = {
-        "generated": __import__("datetime").datetime.utcnow().strftime("%Y-%m-%d"),
+        "generated": datetime.date.today().strftime("%Y-%m-%d"),
         "from": FROM,
         "counts": {
             "people": len(people),

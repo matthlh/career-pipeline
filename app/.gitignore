@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# Real contact data, written by scripts/jobs/export_app.py. Real addresses.
+public/data.js

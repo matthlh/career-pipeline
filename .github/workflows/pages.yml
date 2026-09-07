@@ -1,17 +1,15 @@
-name: Deploy app to Pages
+name: Test and deploy
 
-# Publishes the outreach app. The app is mid-migration from a single static
-# HTML file to a Vite build, so this handles both: if app/package.json exists it
-# builds and publishes app/dist, otherwise it publishes app/ as-is. Whichever
-# state the repo is in, the deploy works.
-#
-# The real dataset never ships. app/data.js (and app/public/data.js under Vite)
-# is gitignored, so the published copy falls back to the invented example people
-# and a visitor sees a working demo rather than anyone's actual inbox.
+# The app is a Vite + TypeScript build now, so Pages gets app/dist rather than
+# app/ itself. app/public/data.js holds real addresses and is gitignored, so a
+# clean CI checkout simply does not have it: the build falls back to
+# data.example.js, which only assigns window.SEED when the real file is absent.
+# That is the mechanism, and the leak check below is the belt to its braces.
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -25,7 +23,38 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      # The pipeline has no dependencies on purpose, so there is nothing to install.
+      - name: Pipeline tests
+        run: python3 -m unittest discover -s scripts/tests -v
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+        working-directory: app
+
+      - name: Types
+        run: npx tsc -b --noEmit
+        working-directory: app
+
+      - name: App tests
+        run: npm test
+        working-directory: app
+
   deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -33,60 +62,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Decide how to publish
-        id: mode
-        run: |
-          if [ -f app/package.json ]; then
-            echo "dir=app/dist" >> "$GITHUB_OUTPUT"
-            echo "build=true"   >> "$GITHUB_OUTPUT"
-            echo "Vite build -> app/dist"
-          else
-            echo "dir=app"    >> "$GITHUB_OUTPUT"
-            echo "build=false" >> "$GITHUB_OUTPUT"
-            echo "Static -> app/"
-          fi
-
       - uses: actions/setup-node@v4
-        if: steps.mode.outputs.build == 'true'
         with:
-          node-version: 22
+          node-version: "22"
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-      - name: Build
-        if: steps.mode.outputs.build == 'true'
+      - run: npm ci
         working-directory: app
-        run: |
-          npm ci
-          npm run build
 
-      # The check CLAUDE.md asks for before a commit, enforced where it actually
-      # matters: on the bytes about to become a public website. Only RFC 2606
-      # reserved domains may ship - the .example TLD the demo data uses, and
-      # example.com for the sender placeholder. Anything else is a real person's
-      # inbox and fails the deploy. node_modules is excluded because package
-      # metadata is full of maintainer addresses that never reach the bundle.
+      - run: npm run build
+        working-directory: app
+
+      # The last gate before anything becomes public. Only RFC 2606 reserved
+      # domains may ship; anything else is a real person's inbox and fails the
+      # deploy rather than the review.
       - name: Refuse to publish real addresses
-        run: |
-          leaks=$(grep -rhoE --exclude-dir=node_modules \
-            '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' \
-            "${{ steps.mode.outputs.dir }}" \
-            | grep -viE '@[a-zA-Z0-9.-]*\.example$|@example\.(com|org|net)$' \
-            | sort -u) || true
-          if [ -n "$leaks" ]; then
-            echo "::error::Real-looking addresses in ${{ steps.mode.outputs.dir }} - refusing to publish."
-            echo "$leaks"
-            exit 1
-          fi
-          echo "Clean: nothing but reserved example domains."
+        run: ./scripts/leakcheck.sh app/dist
 
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ${{ steps.mode.outputs.dir }}
+          path: app/dist
 
       - id: deployment
         uses: actions/deploy-pages@v4

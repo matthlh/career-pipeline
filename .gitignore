@@ -1,5 +1,7 @@
 # Real contact data. Addresses belonging to actual people - never publish.
-app/data.js
+# Written by scripts/jobs/export_app.py into the Vite public/ directory, so
+# both `npm run dev` and `npm run build` pick it up without an extra step.
+app/public/data.js
 data/
 drafts/
 inputs/*
@@ -18,6 +20,10 @@ SCHEDULE.md
 RUNBOOK.md
 STATUS.md
 .claude/
+
+app/node_modules/
+app/dist/
+app/*.tsbuildinfo
 
 .idea/
 __pycache__/

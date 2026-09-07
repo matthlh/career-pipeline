@@ -1,0 +1,121 @@
+/* Light is the base. Dark overrides only the tokens, twice: once for the OS
+   preference (skipped when the toggle has forced light) and once for the
+   toggle itself, so the button wins in both directions. */
+:root{
+  --bg-a:#dfe9f2; --bg-b:#f4ece2;
+  --ink:#12140f; --dim:#5d6154; --line:rgba(18,20,15,.13);
+  --card:rgba(255,255,255,.72); --surface:#fff; --soft:rgba(255,255,255,.6);
+  --sunk:rgba(18,20,15,.06); --row:rgba(255,255,255,.45);
+  --go:#2f5d3f; --go-ink:#fff; --warn:#8a5320; --red:#8d3a34;
+  --warn-bg:rgba(255,244,230,.9); --warn-line:rgba(138,83,32,.35);
+  --stop-bg:rgba(255,238,236,.9); --stop-line:rgba(141,58,52,.3);
+  --hot-bg:rgba(255,250,243,.8); --hot-line:rgba(138,83,32,.45);
+  --p1:#2f5d3f; --p2:#25567e; --p3:#8a5320;
+  --tag-bg:rgba(47,93,63,.13); --tag-man-bg:rgba(138,83,32,.14);
+  --shadow:rgba(0,0,0,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg-a:#14181a; --bg-b:#1b1815;
+    --ink:#e9e6df; --dim:#989c93; --line:rgba(233,230,223,.16);
+    --card:rgba(255,255,255,.055); --surface:rgba(255,255,255,.09); --soft:rgba(255,255,255,.05);
+    --sunk:rgba(0,0,0,.28); --row:rgba(255,255,255,.045);
+    --go:#79b592; --go-ink:#0e1512; --warn:#d9a05f; --red:#e0908a;
+    --warn-bg:rgba(217,160,95,.1); --warn-line:rgba(217,160,95,.32);
+    --stop-bg:rgba(224,144,138,.1); --stop-line:rgba(224,144,138,.3);
+    --hot-bg:rgba(217,160,95,.07); --hot-line:rgba(217,160,95,.4);
+    --p1:#79b592; --p2:#7fb0da; --p3:#d9a05f;
+    --tag-bg:rgba(121,181,146,.16); --tag-man-bg:rgba(217,160,95,.16);
+    --shadow:rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg-a:#14181a; --bg-b:#1b1815;
+  --ink:#e9e6df; --dim:#989c93; --line:rgba(233,230,223,.16);
+  --card:rgba(255,255,255,.055); --surface:rgba(255,255,255,.09); --soft:rgba(255,255,255,.05);
+  --sunk:rgba(0,0,0,.28); --row:rgba(255,255,255,.045);
+  --go:#79b592; --go-ink:#0e1512; --warn:#d9a05f; --red:#e0908a;
+  --warn-bg:rgba(217,160,95,.1); --warn-line:rgba(217,160,95,.32);
+  --stop-bg:rgba(224,144,138,.1); --stop-line:rgba(224,144,138,.3);
+  --hot-bg:rgba(217,160,95,.07); --hot-line:rgba(217,160,95,.4);
+  --p1:#79b592; --p2:#7fb0da; --p3:#d9a05f;
+  --tag-bg:rgba(121,181,146,.16); --tag-man-bg:rgba(217,160,95,.16);
+  --shadow:rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;color:var(--ink);font:16px/1.55 ui-rounded,-apple-system,"SF Pro Rounded","Segoe UI",sans-serif;
+  background:linear-gradient(170deg,var(--bg-a),var(--bg-b));background-attachment:fixed;min-height:100dvh}
+#root{max-width:680px;margin:0 auto;padding:22px 16px 90px;min-height:100dvh;display:flex;flex-direction:column}
+h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em;font-weight:650}
+h2{font-size:18px;margin:26px 0 10px;letter-spacing:-.01em;font-weight:640}
+h3{font-size:15px;margin:0 0 6px;font-weight:640}
+p{margin:0 0 11px}
+.dim{color:var(--dim)} .sm{font-size:13.5px}
+.xs{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);font-weight:650}
+.card{background:var(--card);backdrop-filter:blur(12px);border:1px solid var(--line);
+  border-radius:18px;padding:18px;margin-bottom:12px}
+.card.hot{border-color:var(--hot-line);background:var(--hot-bg)}
+button{font:inherit;cursor:pointer;border-radius:12px;border:1px solid var(--line);padding:11px 15px;
+  background:var(--surface);color:var(--ink);font-weight:560;transition:transform .08s}
+button:active{transform:scale(.985)}
+button:disabled{opacity:.4;cursor:default}
+button.go{background:var(--go);color:var(--go-ink);border-color:transparent;width:100%;font-size:16px;padding:14px;font-weight:620}
+button.ghost{background:transparent;border-color:transparent;color:var(--dim);padding:8px 10px}
+button.copy{width:100%;font-size:16px;padding:14px;background:var(--surface)}
+button.copy.done{background:var(--go);color:var(--go-ink);border-color:transparent}
+button.sel{background:var(--ink);color:var(--bg-a);border-color:transparent}
+button.tiny{font-size:12.5px;padding:6px 11px;border-radius:9px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row.eq>*{flex:1;min-width:110px}
+a{color:var(--go);font-weight:560}
+.fact{background:var(--soft);border-left:3px solid var(--go);padding:11px 13px;
+  border-radius:0 11px 11px 0;margin:11px 0;font-size:14px}
+.fact.none{border-left-color:var(--warn)}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.6 ui-monospace,Menlo,monospace;
+  background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:13px;margin:0 0 10px;max-height:340px;overflow:auto}
+.pill{display:inline-block;font-size:11px;padding:3px 8px;border-radius:99px;border:1px solid currentColor;font-weight:600;white-space:nowrap}
+.t1{color:var(--p1)}.t2{color:var(--p2)}.t3{color:var(--p3)}.tu{color:var(--dim)}.t4{color:var(--red)}
+.big{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.chk{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.chk:last-child{border-bottom:none}
+.box{width:23px;height:23px;border-radius:7px;border:1.5px solid var(--line);flex:none;display:grid;
+  place-items:center;font-size:13px;background:var(--surface);color:transparent;margin-top:2px}
+.box.on{background:var(--go);border-color:transparent;color:var(--go-ink)}
+.chk.on .ct{opacity:.42;text-decoration:line-through}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg-a);
+  padding:11px 20px;border-radius:99px;font-size:14px;font-weight:560;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+.toast.on{opacity:1}
+.tabs{display:flex;gap:5px;margin:14px 0 18px;background:var(--sunk);padding:4px;border-radius:14px}
+.tabs button{flex:1;border:none;background:transparent;padding:9px 4px;border-radius:10px;font-size:14px;font-weight:600;color:var(--dim)}
+.tabs button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);
+   padding:8px 5px;border-bottom:1px solid var(--line);font-weight:650}
+td{padding:9px 5px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.detail{background:var(--row)}
+select,input[type=text],textarea{font:inherit;font-size:13.5px;padding:7px 9px;border-radius:9px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);width:100%}
+textarea{resize:vertical;min-height:64px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:9px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+.stat .n{font-size:23px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.warn{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:14px;padding:13px 15px;margin-bottom:12px;font-size:14px}
+.stop{background:var(--stop-bg);border-color:var(--stop-line)}
+.sep{height:1px;background:var(--line);margin:16px 0}
+ol.steps{padding-left:20px;margin:0 0 12px}
+ol.steps li{margin-bottom:9px}
+.flow{counter-reset:s;list-style:none;padding:0;margin:0}
+.flow li{position:relative;padding:0 0 16px 34px;border-left:2px solid var(--line);margin-left:11px}
+.flow li:last-child{border-left-color:transparent;padding-bottom:0}
+.flow li::before{counter-increment:s;content:counter(s);position:absolute;left:-13px;top:-2px;width:24px;height:24px;
+  border-radius:99px;background:var(--go);color:var(--go-ink);font-size:12px;font-weight:700;display:grid;place-items:center}
+.flow li.man::before{background:var(--warn);color:var(--go-ink)}
+.tag{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:99px;
+  background:var(--tag-bg);color:var(--go);margin-left:7px;vertical-align:2px}
+.tag.man{background:var(--tag-man-bg);color:var(--warn)}
+.foot{margin-top:auto;padding-top:22px;font-size:12.5px;color:var(--dim)}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.theme{border-radius:99px;width:36px;height:36px;padding:0;flex:none;font-size:15px;line-height:1}
