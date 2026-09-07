@@ -124,7 +124,10 @@ def parse_post(post):
             continue
         out.append({
             "domain": d,
-            "name": re.sub(r"https?://\S+", "", c.get("name") or d).strip(" -|:,\u2013\u2014#") or d,
+            # Same cleaner as the HN path. \S+ would otherwise eat the bracket
+            # a URL sits inside and leave the opener behind.
+            "name": store.clean_company_name(
+                re.sub(r"https?://[^\s)\]}]+", "", c.get("name") or d)) or d,
             "state": "new",
             "what_they_build": c.get("what_they_build"),
             "stage": c.get("stage") or "unknown",
