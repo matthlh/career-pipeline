@@ -65,10 +65,30 @@ class Check(unittest.TestCase):
 
     def test_a_recent_log_full_of_tracebacks_is_not(self):
         self._entries(ENTRY % cronhealth.ROOT)
-        self._write_log("=== queue ===\nTraceback (most recent call last):\nRuntimeError: boom\n")
+        self._write_log("=== queue ===\n=== queue done: {} ===\n"
+                        "Traceback (most recent call last):\nRuntimeError: boom\n")
         ok, msg = cronhealth.check()
         self.assertFalse(ok)
         self.assertIn("failure", msg)
+
+    def test_a_log_with_output_but_no_job_that_finished(self):
+        # The near-miss that shipped: Full Disk Access granted to /usr/sbin/cron
+        # but not to the python binary it launches. cron writes, every job dies
+        # before it starts, and grepping for "Traceback" finds nothing - so the
+        # check reported ok while the pipeline did precisely nothing.
+        self._entries(ENTRY % cronhealth.ROOT)
+        self._write_log("/usr/bin/python3: can't open file 'scripts/run.py': "
+                        "[Errno 1] Operation not permitted\n" * 2)
+        ok, msg = cronhealth.check()
+        self.assertFalse(ok)
+        self.assertIn("no completed job", msg)
+        self.assertIn("Full Disk Access", msg)
+
+    def test_it_needs_a_finished_job_not_merely_a_started_one(self):
+        self._entries(ENTRY % cronhealth.ROOT)
+        self._write_log("=== queue ===\n")     # started, never finished
+        ok, _ = cronhealth.check()
+        self.assertFalse(ok)
 
     def test_a_missing_crontab_binary_does_not_take_the_job_down(self):
         cronhealth._crontab_lines = self._orig_lines   # the real one

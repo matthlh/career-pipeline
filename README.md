@@ -55,6 +55,26 @@ Enrichment parses the posting header with a regex first and only falls back to a
 model, batched 40 at a time across 5 workers. That took a run of 592 companies
 from roughly three hours to five and a half minutes.
 
+## Using it day to day
+
+```bash
+python3 scripts/run.py app
+```
+
+Builds if the sources moved, refreshes the data from the last pipeline run, and
+opens the file. **Bookmark the path it prints** — after the first time there is
+no server and no terminal, because the bundle is an IIFE behind a classic
+`<script>` rather than a module, which is the only reason `file://` works.
+
+The published site is the demo and always will be: it ships with twelve invented
+people because publishing the real ones would put 188 addresses on a public URL.
+To use it with your own data on another machine, hit **Export progress** on the
+machine that has the pipeline and drop the file anywhere on the page. It stays in
+that browser. There is no account, and nothing is uploaded anywhere.
+
+If the schedule is not running, that is macOS TCC rather than the pipeline — see
+[docs/scheduling.md](docs/scheduling.md).
+
 ## The app
 
 React 18 and TypeScript, built with Vite. `npm run dev` in `app/`, or open

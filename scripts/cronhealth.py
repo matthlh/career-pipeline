@@ -53,13 +53,34 @@ def check():
                        % (age.days, len(scheduled)))
 
     with io.open(LOG, encoding="utf-8", errors="replace") as fh:
-        tail = fh.read()[-4000:]
-    failures = [l for l in tail.splitlines() if "Traceback" in l or "another job holds" in l]
-    if failures:
-        return False, ("cron ran %.1f hours ago but the log tail contains %d failure(s). "
-                       "Read state/cron.log." % (age.total_seconds() / 3600, len(failures)))
+        tail = fh.read()[-8000:]
+    hours = age.total_seconds() / 3600
 
-    return True, "cron last wrote %.1f hours ago, no failures in the tail" % (age.total_seconds() / 3600)
+    # Look for evidence of *success*, not for a list of known failures. The
+    # first version of this grepped for "Traceback" and reported ok against a
+    # log whose every line was "can't open file: Operation not permitted" -
+    # which is the exact thing it exists to notice. Every job ends with
+    # "=== <job> done:", so an absence of that is an absence of working.
+    done = [l for l in tail.splitlines() if re.search(r"=== \S+ done:", l)]
+    if not done:
+        hint = ""
+        if re.search(r"Operation not permitted|Permission denied|can't open file", tail):
+            hint = (" The log says the job could not read its own files, which is macOS TCC: "
+                    "the *python* binary in the crontab needs Full Disk Access too, not just "
+                    "/usr/sbin/cron. Granting it to cron alone is the usual near-miss. See "
+                    "docs/scheduling.md for the launchd alternative, which avoids this.")
+        return False, ("cron wrote %.1f hours ago but the log contains no completed job.%s"
+                       % (hours, hint))
+
+    failures = [l for l in tail.splitlines()
+                if "Traceback" in l or "another job holds" in l
+                or re.search(r"Operation not permitted|Permission denied", l)]
+    if failures:
+        return False, ("cron ran %.1f hours ago; %d job(s) completed but the log also has %d "
+                       "failure line(s). Read state/cron.log." % (hours, len(done), len(failures)))
+
+    return True, ("cron wrote %.1f hours ago, %d completed job(s) in the tail, no failures"
+                  % (hours, len(done)))
 
 
 if __name__ == "__main__":
