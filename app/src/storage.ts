@@ -1,4 +1,4 @@
-import { DAY, RANK, today } from "./rules";
+import { DAY, RANK, isUntouched, today } from "./rules";
 import { SEED } from "./seed";
 import type { AppState, PersonState } from "./types";
 
@@ -34,7 +34,10 @@ function seedDemo(): AppState {
 export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as AppState;
+    if (raw) {
+      const stored = JSON.parse(raw) as AppState;
+      if (!isUntouched(stored)) return stored;
+    }
   } catch {
     storage.ok = false;
   }

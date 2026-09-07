@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  FOLLOWUP_DAYS, RANK, STALE_DAYS, ago, daysSince, nextAction, nextPeak,
+  FOLLOWUP_DAYS, RANK, STALE_DAYS, ago, daysSince, isUntouched, nextAction, nextPeak,
   peakOf, sendWindow, today, weakSendDay, words,
 } from "./rules";
 import type { Person, PersonState, Status } from "./types";
@@ -137,5 +137,20 @@ describe("words", () => {
     expect(words("  one   two\nthree ")).toBe(3);
     expect(words("")).toBe(0);
     expect(words(null)).toBe(0);
+  });
+});
+
+describe("a stored state that records nothing", () => {
+  it("is treated as no state at all", () => {
+    // The app saves on first render, so an empty object in localStorage means
+    // "someone opened the page once", not "someone has a search in progress".
+    expect(isUntouched(undefined)).toBe(true);
+    expect(isUntouched({ p: {}, ropes: {}, log: [], target: 2 })).toBe(true);
+  });
+  it("but anything actually done is kept", () => {
+    expect(isUntouched({ p: { "a@b.example": { status: "messaged" } }, ropes: {}, log: [], target: 2 })).toBe(false);
+    expect(isUntouched({ p: {}, ropes: { 0: true }, log: [], target: 2 })).toBe(false);
+    expect(isUntouched({ p: {}, ropes: {}, log: [{ at: "x" }], target: 2 })).toBe(false);
+    expect(isUntouched({ p: {}, ropes: {}, log: [], target: 2, people: [person()] })).toBe(false);
   });
 });

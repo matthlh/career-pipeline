@@ -20,7 +20,14 @@ export function App() {
   const [theme, setTheme] = useState<Theme>(loadTheme);
   const file = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { saveState(state); }, [state]);
+  /* Skip the save on mount. Writing state before anything has happened is what
+     poisoned the published copy: the stored empty object then looked like real
+     progress on the next visit. */
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (!mounted.current) { mounted.current = true; return; }
+    saveState(state);
+  }, [state]);
   useEffect(() => { applyTheme(theme); }, [theme]);
 
   /* Two ways in. Locally, data.js ships alongside the page. On a published copy

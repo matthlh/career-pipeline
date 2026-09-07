@@ -1,4 +1,4 @@
-import type { Action, Person, PersonState, Status } from "./types";
+import type { Action, AppState, Person, PersonState, Status } from "./types";
 
 /* ============================ the rules =================================
 
@@ -65,6 +65,20 @@ export function ago(iso: string | undefined, now: Date = new Date()): string {
 
 export function words(str: string | undefined | null): number {
   return (str || "").trim().split(/\s+/).filter(Boolean).length;
+}
+
+/** Whether a stored state records anything the person actually did.
+ *
+ *  An untouched state is indistinguishable from no state, and treating them the
+ *  same matters: the app writes to localStorage on its first render, so a
+ *  visitor who opened the published copy once - before it had demo data, or
+ *  just to bounce off it - would otherwise be pinned to an empty app forever. */
+export function isUntouched(s: Partial<AppState> | null | undefined): boolean {
+  if (!s) return true;
+  return Object.keys(s.p ?? {}).length === 0
+    && (s.log ?? []).length === 0
+    && Object.keys(s.ropes ?? {}).length === 0
+    && !s.people?.length;
 }
 
 /** Furthest rung this person ever reached, falling back to their current status
