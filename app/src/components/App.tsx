@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { nextPeak, today } from "../rules";
 import { DEMO, REPO_URL, SEED } from "../seed";
 import { applyTheme, loadState, loadTheme, saveState, watchSystemTheme, type Theme } from "../storage";
@@ -6,9 +6,10 @@ import { Logo, toast } from "../ui";
 import { People } from "./People";
 import { Process } from "./Process";
 import { RopesPanel } from "./Ropes";
+import * as folder from "../folder";
 import { TemplatesTab } from "./TemplatesTab";
 import { Today } from "./Today";
-import type { AppState, PersonState } from "../types";
+import type { AppState, PersonState, Seed } from "../types";
 
 const THEME_LABEL: Record<Theme, string> = { auto: "System", light: "Light", dark: "Dark" };
 
@@ -40,11 +41,54 @@ export function App() {
   themeRef.current = theme;
   useEffect(() => watchSystemTheme(() => themeRef.current), []);
 
+  /* A folder the pipeline writes into, remembered across visits. Takes
+     precedence over the built-in seed and is deliberately *not* copied into
+     localStorage: the point is that it is re-read every load, so the morning's
+     cron run shows up without anyone importing anything. */
+  const [dir, setDir] = useState<Seed | null>(null);
+  const [dirState, setDirState] = useState<"off" | "needs-click" | "on" | "error">("off");
+  const [dirError, setDirError] = useState("");
+
+  const loadFolder = useCallback(async (ask: boolean) => {
+    const h = await folder.saved();
+    if (!h) return;
+    const perm = await folder.access(h, ask);
+    if (perm === "needs-click") { setDirState("needs-click"); return; }
+    if (perm === "denied") { setDirState("error"); setDirError("Permission was refused."); return; }
+    try {
+      setDir(await folder.readSeed(h));
+      setDirState("on");
+    } catch (e) {
+      setDirState("error");
+      setDirError(e instanceof Error ? e.message : "could not read data.js there");
+    }
+  }, []);
+
+  useEffect(() => { if (folder.supported()) void loadFolder(false); }, [loadFolder]);
+
+  async function connectFolder() {
+    try {
+      await folder.choose();
+      await loadFolder(true);
+      toast("Folder connected");
+    } catch {
+      /* the picker was dismissed */
+    }
+  }
+
+  async function disconnectFolder() {
+    await folder.forget();
+    setDir(null);
+    setDirState("off");
+    toast("Folder disconnected");
+  }
+
   /* Two ways in. Locally, data.js ships alongside the page. On a published copy
      there is no data.js - you import the export file, which carries the people
      as well as the progress, so no one's address is ever on a public URL. */
-  const people = state.people?.length ? state.people : SEED.people;
-  const counts = state.counts ?? SEED.counts;
+  const source = state.people?.length ? null : dir;
+  const people = state.people?.length ? state.people : (source?.people ?? SEED.people);
+  const counts = state.counts ?? source?.counts ?? SEED.counts;
 
   /* Person state is merged, never replaced, so a data.js refresh that adds new
      people cannot wipe what you have already tracked. */
@@ -197,10 +241,21 @@ export function App() {
             addresses on a public URL. There is no account to sign into and nothing is uploaded
             anywhere; the data lives on whichever machine you put it on.
           </p>
+          {folder.supported() && (
+            <p className="sm dim">
+              <b>On the machine with the pipeline:</b> connect the folder the pipeline writes
+              into — <code>app/public</code> — and this page reads it on every visit, so
+              whatever cron wrote this morning is just here. The browser remembers the folder;
+              nothing is uploaded and nothing leaves the machine.
+              <div style={{ marginTop: 8 }}>
+                <button className="tiny sel" onClick={connectFolder}>Connect data folder</button>
+              </div>
+            </p>
+          )}
           <p className="sm dim">
-            <b>On the machine with the pipeline:</b> run{" "}
-            <code>python3 scripts/run.py app</code> and bookmark the file it opens. No server,
-            no terminal after the first time.
+            <b>{folder.supported() ? "Or open it from disk:" : "On the machine with the pipeline:"}</b>{" "}
+            run <code>python3 scripts/run.py app</code> and bookmark the file it opens. No
+            server, no terminal after the first time.
           </p>
           <p className="sm dim">
             <b>Anywhere else:</b> hit <b>Export progress</b> there, then drop that file
@@ -221,11 +276,39 @@ export function App() {
       <RopesPanel done={state.ropes || {}} setRope={setRope} />
 
       <div className="foot">
+        {dirState === "needs-click" && (
+          <div className="warn" style={{ marginBottom: 10 }}>
+            <b>Your data folder is connected but locked.</b> Browsers re-ask on a fresh visit,
+            and only a click can answer.
+            <div style={{ marginTop: 8 }}>
+              <button className="tiny sel" onClick={() => void loadFolder(true)}>Unlock it</button>
+            </div>
+          </div>
+        )}
+        {dirState === "error" && (
+          <div className="warn stop" style={{ marginBottom: 10 }}>
+            <b>Could not read that folder.</b> {dirError} Pick the folder containing{" "}
+            <code>data.js</code> — that is <code>app/public</code>.
+            <div style={{ marginTop: 8 }} className="row">
+              <button className="tiny" onClick={connectFolder}>Pick again</button>
+              <button className="tiny ghost" onClick={disconnectFolder}>Forget it</button>
+            </div>
+          </div>
+        )}
         <div className="row" style={{ marginBottom: 8 }}>
           <button className="tiny ghost" onClick={exportState}>Export progress</button>
           <button className="tiny ghost" onClick={() => file.current?.click()}>Import</button>
           <input ref={file} type="file" accept="application/json" style={{ display: "none" }} onChange={importState} />
+          {folder.supported() && (dirState === "on"
+            ? <button className="tiny ghost" onClick={disconnectFolder}>Disconnect folder</button>
+            : <button className="tiny ghost" onClick={connectFolder}>Connect data folder</button>)}
         </div>
+        {dirState === "on" && (
+          <div style={{ marginBottom: 6 }}>
+            Reading <code>data.js</code> from your connected folder — re-read on every visit, so
+            a pipeline run shows up without importing anything.
+          </div>
+        )}
         {counts.people} people from {counts.companies} companies, data generated{" "}
         {state.generated ?? SEED.generated}. Progress is saved in this browser only — export it
         before you switch machines, or drop the file anywhere on this page to load it.

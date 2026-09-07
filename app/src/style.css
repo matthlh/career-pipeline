@@ -121,15 +121,23 @@ ol.steps li{margin-bottom:9px}
 .tag.man{background:var(--tag-man-bg);color:var(--warn)}
 .foot{margin-top:auto;padding-top:22px;font-size:12.5px;color:var(--dim)}
 .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.theme{border-radius:99px;width:36px;height:36px;padding:0;flex:none;font-size:15px;line-height:1}
 
 /* --- brand ------------------------------------------------------------- */
 .brand{display:flex;gap:11px;align-items:center;min-width:0}
 .logo{flex:none;border-radius:8px;display:block}
-.theme{display:flex;align-items:center;gap:6px;border-radius:99px;height:34px;
-  padding:0 13px;flex:none;font-size:13px;font-weight:600;line-height:1;color:var(--dim)}
+/* One rule, not two. The width has to be auto so the pill grows to fit the
+   label - an earlier icon-only version pinned 36px and the text sat outside
+   the button entirely. */
+.theme{display:inline-flex;align-items:center;gap:7px;width:auto;height:34px;
+  padding:0 14px 0 11px;border-radius:99px;flex:none;
+  font-size:13px;font-weight:600;line-height:1;color:var(--dim);white-space:nowrap}
+.theme:hover{color:var(--ink)}
+.theme>span:first-child{font-size:14px;line-height:1;display:block}
 .theme-label{letter-spacing:.01em}
-@media (max-width:420px){ .theme-label{display:none} .theme{padding:0;width:34px;justify-content:center} }
+@media (max-width:420px){
+  .theme-label{display:none}
+  .theme{width:34px;padding:0;justify-content:center;gap:0}
+}
 
 /* --- the first two weeks, as a panel that follows you ------------------- */
 

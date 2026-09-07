@@ -68,9 +68,16 @@ no server and no terminal, because the bundle is an IIFE behind a classic
 
 The published site is the demo and always will be: it ships with twelve invented
 people because publishing the real ones would put 188 addresses on a public URL.
-To use it with your own data on another machine, hit **Export progress** on the
-machine that has the pipeline and drop the file anywhere on the page. It stays in
-that browser. There is no account, and nothing is uploaded anywhere.
+There is no account and nothing is uploaded anywhere. Two ways to point it at
+your own data instead:
+
+- **Connect the data folder.** On Chrome or Edge, hit *Connect data folder* and
+  pick `app/public`. The browser remembers it, and the page re-reads `data.js`
+  on every visit — so whatever cron wrote at 7:45 is simply there, with no
+  import step. The file is read locally; it never leaves the machine.
+- **Drop an export.** Hit *Export progress* on the machine that has the
+  pipeline, then drop that file anywhere on the page. Works in every browser and
+  on a phone, and carries your progress as well as the people.
 
 If the schedule is not running, that is macOS TCC rather than the pipeline — see
 [docs/scheduling.md](docs/scheduling.md).
