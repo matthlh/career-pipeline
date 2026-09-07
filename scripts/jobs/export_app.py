@@ -16,6 +16,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import prefs
+import store
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # app/ is a Vite project now: public/ is copied to the build output verbatim,
@@ -136,7 +137,9 @@ def person(contact, company, research):
         "email": c["email"],
         "name": c.get("name"),
         "first": _first_name(c.get("name"), c["email"]),
-        "company": c.get("company_name") or c["domain"],
+        # Cleaned here as well as at ingest, so the 40-odd records already
+        # carrying "Adyen (  )" come out right without rewriting the store.
+        "company": store.clean_company_name(c.get("company_name")) or c["domain"],
         "domain": c["domain"],
         "repo": repo,
         "method": c.get("method"),

@@ -83,8 +83,9 @@ class GithubAddresses(unittest.TestCase):
         # supply the address - and "saw your commit at X" is a bad message to
         # send to someone who has never worked at X. It is still accepted, but
         # it is now recorded as unconfirmed rather than treated as verified.
-        src = open(os.path.join(os.path.dirname(HERE), "jobs", "resolve_contacts.py"),
-                   encoding="utf-8").read()
+        with open(os.path.join(os.path.dirname(HERE), "jobs", "resolve_contacts.py"),
+                  encoding="utf-8") as fh:
+            src = fh.read()
         self.assertIn("org_confirmed", src)
         self.assertIn("org_match", src)
 

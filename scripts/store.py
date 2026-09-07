@@ -5,6 +5,7 @@ this is fast, and it means a killed job never leaves a half-written file.
 """
 import json
 import os
+import re
 import tempfile
 from datetime import datetime, timedelta, timezone
 
@@ -102,6 +103,34 @@ def normalize_domain(raw):
     if "." not in d or " " in d:
         return None
     return d
+
+
+_EMPTY_BRACKETS = re.compile(r"[(\[{]\s*[)\]}]")
+_DANGLING_SEP = re.compile(r"[,;|]\s*([)\]}])")
+
+
+def clean_company_name(name):
+    """Tidy a company name that had a URL cut out of it.
+
+    The HN convention is `Company (https://example.com) | Role | ...`, and
+    removing the URL leaves the brackets behind: "Adyen (  )" and "Cerity
+    Partners (  )" are both real records. The name goes straight into the
+    greeting of a cold email, so this is not cosmetic.
+
+    Applied at ingest *and* on export, so records already carrying a mangled
+    name come out clean without rewriting the store.
+    """
+    if not name:
+        return name
+    out = _EMPTY_BRACKETS.sub("", name)
+    out = _DANGLING_SEP.sub(r"\1", out)          # "(YC S23,  )" -> "(YC S23)"
+    # A name ending in a lone opening bracket is never right - it is the half a
+    # greedy URL match left behind.
+    out = re.sub(r"[(\[{]\s*$", "", out)
+    out = re.sub(r"\s{2,}", " ", out)
+    # Strip separators but never brackets: a balanced "(YC S23)" is part of
+    # the name, and taking one end off leaves it worse than it started.
+    return out.strip(" -|:,\u2013") or name
 
 
 def upsert_company(record):

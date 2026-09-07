@@ -106,3 +106,40 @@ class Domains(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CompanyNames(unittest.TestCase):
+    """The name goes into the greeting of a cold email, so this is not cosmetic.
+
+    "Adyen (  )" and "Cerity Partners (  )" are both real records: the HN
+    convention is `Company (https://url) | Role | ...` and cutting the URL out
+    leaves the brackets behind.
+    """
+
+    def test_drops_brackets_left_empty_by_a_stripped_url(self):
+        for raw, want in (("Adyen (  )", "Adyen"), ("VLM Run ( )", "VLM Run"),
+                          ("Acme []", "Acme"), ("Aha! (  )", "Aha!")):
+            self.assertEqual(store.clean_company_name(raw), want, raw)
+
+    def test_repairs_a_separator_left_dangling_before_the_bracket(self):
+        self.assertEqual(store.clean_company_name("ParadeDB (YC S23,  )"), "ParadeDB (YC S23)")
+
+    def test_leaves_a_bracket_that_still_has_something_in_it(self):
+        # Taking one end off a balanced pair is worse than leaving it alone.
+        for name in ("Enveritas (YC S18, non-profit)", "Open Education / Neon",
+                     "St. Jude Children's Research Hospital", "airCFO"):
+            self.assertEqual(store.clean_company_name(name), name, name)
+
+    def test_never_returns_nothing_where_there_was_something(self):
+        for raw in ("(  )", "---", "|"):
+            self.assertTrue(store.clean_company_name(raw), raw)
+
+    def test_passes_empty_input_straight_through(self):
+        self.assertEqual(store.clean_company_name(""), "")
+        self.assertIsNone(store.clean_company_name(None))
+
+    def test_is_idempotent(self):
+        # It runs at ingest and again on export, so it has to be safe twice.
+        for raw in ("Adyen (  )", "ParadeDB (YC S23,  )", "Enveritas (YC S18, non-profit)"):
+            once = store.clean_company_name(raw)
+            self.assertEqual(store.clean_company_name(once), once, raw)

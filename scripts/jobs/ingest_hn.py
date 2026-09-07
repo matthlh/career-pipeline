@@ -89,7 +89,7 @@ def parse_comment(text, thread_title, thread_id, comment_id):
     # The first line is conventionally "Company | Role | Location | ..."
     first_line = plain[:200]
     name = first_line.split("|")[0].strip()
-    name = re.sub(r"https?://\S+", "", name).strip(" -|:,\u2013")
+    name = store.clean_company_name(re.sub(r"https?://[^\s)\]}]+", "", name))
     if len(name) > 60 or not name:
         name = domains[0]
 

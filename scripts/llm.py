@@ -40,7 +40,16 @@ def ask(prompt, allow_web=True):
     cmd = [CLAUDE, "-p", "--output-format", "json",
            "--allowed-tools", "WebSearch,WebFetch" if allow_web else ""]
 
-    proc = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=TIMEOUT)
+    try:
+        proc = subprocess.run(cmd, input=prompt, capture_output=True,
+                              text=True, timeout=TIMEOUT)
+    except subprocess.TimeoutExpired:
+        # One slow prompt, not a dead CLI. LLMError so the caller drops this
+        # record and carries on rather than halting the whole backlog.
+        raise LLMError("claude timed out after %ds" % TIMEOUT)
+    except OSError as e:
+        # The binary is missing or unrunnable. That is the whole run.
+        raise LLMUnavailable("could not run %r: %s" % (CLAUDE, e))
     if proc.returncode != 0:
         blob = (proc.stderr + proc.stdout).lower()
         detail = (proc.stderr.strip() or proc.stdout.strip())[:300]
@@ -50,9 +59,22 @@ def ask(prompt, allow_web=True):
                                  % (proc.returncode, detail or "no output, likely usage limit"))
         raise LLMError("claude exited %d: %s" % (proc.returncode, detail))
 
-    payload = json.loads(proc.stdout)
+    # A malformed or reshaped envelope is this run's problem, not this record's,
+    # but it is not a usage limit either - so it raises LLMError, which callers
+    # already treat as "skip this one and keep the backlog". Letting a raw
+    # JSONDecodeError or KeyError escape gave them an exception with no context
+    # and no type to dispatch on.
+    try:
+        payload = json.loads(proc.stdout)
+    except ValueError as e:
+        raise LLMError("claude returned no JSON envelope (%s): %s"
+                       % (e, proc.stdout.strip()[:200] or "empty stdout"))
+    if not isinstance(payload, dict):
+        raise LLMError("claude returned %s, not an object" % type(payload).__name__)
     if payload.get("is_error"):
-        raise LLMError("claude reported an error: %s" % payload.get("result", "")[:500])
+        raise LLMError("claude reported an error: %s" % str(payload.get("result", ""))[:500])
+    if "result" not in payload:
+        raise LLMError("claude envelope has no 'result' key: %s" % sorted(payload)[:8])
     return payload["result"]
 
 
@@ -61,6 +83,9 @@ def ask_json(prompt, allow_web=True):
     text = ask(prompt, allow_web=allow_web)
     start = text.find("{")
     end = text.rfind("}")
-    if start == -1 or end == -1:
+    if start == -1 or end == -1 or end < start:
         raise LLMError("no JSON object in response: %s" % text[:300])
-    return json.loads(text[start:end + 1])
+    try:
+        return json.loads(text[start:end + 1])
+    except ValueError as e:
+        raise LLMError("response was not valid JSON (%s): %s" % (e, text[start:start + 300]))

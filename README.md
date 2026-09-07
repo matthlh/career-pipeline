@@ -115,6 +115,9 @@ you find out weeks later by not having sent them anything.
 - `scripts/leakcheck.sh` — nothing git tracks contains an address outside the
   RFC 2606 reserved domains. The deploy runs the same script over the built
   artifact.
+- `scripts/tests/test_llm.py` — which failures halt a run and which lose one
+  record. That distinction has cost a backlog once already, so every branch of
+  it is pinned. Nothing there runs the CLI.
 - `scripts/cronhealth.py` — whether the schedule is actually running. Reported by
   `check` and written into `STATUS.md`, never fatal.
 
