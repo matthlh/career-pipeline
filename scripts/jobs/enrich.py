@@ -113,7 +113,10 @@ def run(limit=700, batch=BATCH, workers=WORKERS):
         header = parse_header(c.get("raw_posting"))
         tier, note = guess_tier(header, c.get("raw_posting"))
         rec = by_domain[c["domain"]]
-        rec.update(header)
+        # Only ever add. header defaults its four parsed fields to None, and a
+        # stale record re-parsing worse the second time would otherwise erase
+        # what the first pass got right.
+        rec.update({k: v for k, v in header.items() if v is not None})
         rec["work_auth_tier"] = tier
         rec["work_auth_note"] = note
         rec["fact_source"] = (rec.get("sources") or [{}])[0].get("url")

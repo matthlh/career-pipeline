@@ -10,8 +10,8 @@ only fall back to research. We never invent an address.
 import json
 import re
 import sys
-import time
 import urllib.request
+from datetime import timedelta
 
 sys.path.insert(0, __file__.rsplit("/scripts/", 1)[0] + "/scripts")
 import store
@@ -74,12 +74,20 @@ def github_emails(domain, company_name):
         if not data or not isinstance(data, list):
             continue
 
-        # Only trust the org if it actually points back at the company domain.
+        # Reject an org whose homepage points at a *different* company. Note
+        # what this cannot do: most orgs set no homepage at all, and an absent
+        # blog is not confirmation - it is the absence of evidence either way.
+        # Record which, because "saw your commit at X" is a bad message to send
+        # to someone who has never worked at X.
         org_info, _ = _gh("/orgs/%s" % org)
+        confirmed = False
         if org_info:
             blog = store.normalize_domain(org_info.get("blog") or "")
-            if blog and blog != domain and not domain.endswith(blog) and not blog.endswith(domain):
-                continue
+            if blog:
+                if blog == domain or domain.endswith(blog) or blog.endswith(domain):
+                    confirmed = True
+                else:
+                    continue
 
         found = []
         for repo in data[:3]:
@@ -94,8 +102,13 @@ def github_emails(domain, company_name):
                     continue
                 login = ((commit.get("author") or {}) or {}).get("login")
                 found.append({"email": email, "name": name, "github": login,
-                              "repo": "%s/%s" % (org, repo["name"])})
-    
+                              "repo": "%s/%s" % (org, repo["name"]),
+                              "org_confirmed": confirmed,
+                              # The org name matching the domain's own first
+                              # label is a much stronger signal than matching a
+                              # slug made from the company name.
+                              "org_match": "domain" if org == domain.split(".")[0] else "name"})
+
         if found:
             # Prefer an address on the company domain over a personal gmail.
             found.sort(key=lambda f: (0 if f["email"].endswith("@" + domain) else 1))
@@ -126,9 +139,35 @@ Never invent an address. If you cannot find a real person, return nulls with con
 """
 
 
+# How long a company that resolved to nothing stays out of the queue.
+#
+# Same shape as store.QUEUE_TTL_DAYS: "we looked and found nobody" was being
+# stored as "never look again". Companies publish team pages and hire people who
+# push code, so a month later the answer can simply be different.
+RESOLVE_RETRY_DAYS = 30
+
+
+def _already_resolved(contacts):
+    """Domains the resolver should skip on this pass.
+
+    A domain with a real address is done. A domain that resolved to nothing is
+    only done for a while - otherwise one empty search retires the company.
+    """
+    cutoff = store.utcnow() - timedelta(days=RESOLVE_RETRY_DAYS)
+    out = set()
+    for k in contacts:
+        if k.get("email"):
+            out.add(k.get("domain"))
+            continue
+        ts = store.parse_ts(k.get("last_attempt") or k.get("created_at"))
+        if ts is None or ts > cutoff:
+            out.add(k.get("domain"))
+    return out
+
+
 def run(limit=25, no_llm=0):
     companies = store.read(store.COMPANIES)
-    existing = set(c.get("domain") for c in store.read(store.CONTACTS))
+    existing = _already_resolved(store.read(store.CONTACTS))
     suppressed = store.suppressed_domains()
 
     pending = [c for c in companies
@@ -174,6 +213,8 @@ def run(limit=25, no_llm=0):
                 "email": top["email"], "name": top["name"], "title": "commits to %s" % top["repo"],
                 "confidence": "verified", "evidence_url": org_url,
                 "github": top.get("github"), "method": "github_commits",
+                "org_confirmed": top.get("org_confirmed"),
+                "org_match": top.get("org_match"),
             })
             store.upsert_contact(record)
             stats["verified"] += 1
@@ -196,7 +237,8 @@ def run(limit=25, no_llm=0):
         conf = r.get("confidence") or "none"
         if not r.get("email") or conf == "none":
             record.update({"email": None, "confidence": "none", "name": r.get("name"),
-                           "state": "resolved_none", "method": "research"})
+                           "state": "resolved_none", "method": "research",
+                           "last_attempt": store.now()})
             stats["none"] += 1
             print("  %-26s research-> none" % domain[:26])
         else:
@@ -218,7 +260,16 @@ def run(limit=25, no_llm=0):
                     break
             store.save_companies(fresh)
 
-        store.upsert_contact(record)
+        # upsert_contact dedupes an email-less record on domain+name, so a
+        # retry that again finds nothing would return the stale row untouched
+        # and never move the window. Refresh it in place instead.
+        contact, is_new = store.upsert_contact(record)
+        if not is_new and not contact.get("email") and record.get("last_attempt"):
+            all_contacts = store.read(store.CONTACTS)
+            for k in all_contacts:
+                if k.get("domain") == domain and not k.get("email"):
+                    k["last_attempt"] = record["last_attempt"]
+            store.save_contacts(all_contacts)
 
     print("\n%s" % stats)
     return stats
