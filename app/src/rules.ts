@@ -108,9 +108,10 @@ const TZ: [RegExp, number, string][] = [
 
 export interface SendWindow { off: number; name: string; theirs: string; yours: string }
 
-export function sendWindow(p: Pick<Person, "location" | "company">): SendWindow {
-  const hay = (p.location || "") + " " + (p.company || "");
-  const hit = TZ.find(([re]) => re.test(hay));
+export function sendWindow(p: Pick<Person, "location">): SendWindow {
+  /* Location only. The company name used to be in here too, which told anyone
+     working at "Boston Dynamics" out of San Francisco to schedule for 3am. */
+  const hit = TZ.find(([re]) => re.test(p.location || ""));
   const off = hit ? hit[1] : 0;
   const name = hit ? hit[2] : "Pacific";
   const local = (h: number) => (((h - off) % 24) + 24) % 24;

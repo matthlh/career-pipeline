@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { CHANNELS, STATUSES, ago, nextAction, today } from "../rules";
 import { copy } from "../ui";
 import type { Upd } from "./PersonCard";
@@ -82,60 +82,59 @@ export function People({ people, state, upd }: { people: Person[]; state: AppSta
                 const st = state.p[p.id] ?? {};
                 const isOpen = open === p.id;
                 const a = nextAction(p, st);
+                /* A Fragment, not a nested table. Wrapping each row in its own
+                   <table> made every row compute its own column widths, so
+                   nothing lined up with the header or with the row above it. */
                 return (
-                  <tr key={p.id}>
-                    <td colSpan={3} style={{ padding: 0, border: "none" }}>
-                      <table><tbody>
-                        <tr>
-                          <td onClick={() => setOpen(isOpen ? null : p.id)} style={{ cursor: "pointer" }}>
-                            <b>{p.name || p.company}</b>
-                            {a.stale && <span className="pill t3" style={{ marginLeft: 6 }}>stalled</span>}
-                            <div className="dim" style={{ fontSize: 12 }}>
-                              {p.company}{p.loc ? " · " + p.loc : ""}
+                  <Fragment key={p.id}>
+                    <tr>
+                      <td onClick={() => setOpen(isOpen ? null : p.id)} style={{ cursor: "pointer" }}>
+                        <b>{p.name || p.company}</b>
+                        {a.stale && <span className="pill t3" style={{ marginLeft: 6 }}>stalled</span>}
+                        <div className="dim" style={{ fontSize: 12 }}>
+                          {p.company}{p.loc ? " · " + p.loc : ""}
+                        </div>
+                      </td>
+                      <td>
+                        <select value={st.status ?? "not contacted"}
+                          onChange={(e) => upd(p.id, {
+                            status: e.target.value as Status, last: today(),
+                            first: st.first ?? today(),
+                          })}>
+                          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </td>
+                      <td className="dim">{ago(st.last)}</td>
+                    </tr>
+                    {isOpen && (
+                      <tr>
+                        <td className="detail" colSpan={3}>
+                          <div className="sm" style={{ marginBottom: 6 }}>
+                            <b>{a.label}.</b> <span className="dim">{a.why}</span>
+                          </div>
+                          <div className="sm dim" style={{ marginBottom: 6 }}>{p.email}</div>
+                          {st.status && st.status !== "not contacted" && (
+                            <div style={{ marginBottom: 6 }}>
+                              <span className="xs">Channel </span>
+                              <select value={st.channel ?? "email"}
+                                onChange={(e) => upd(p.id, { channel: e.target.value as Channel })}>
+                                {(Object.keys(CHANNELS) as Channel[]).map((c) => (
+                                  <option key={c} value={c}>{CHANNELS[c]}</option>
+                                ))}
+                              </select>
                             </div>
-                          </td>
-                          <td>
-                            <select value={st.status ?? "not contacted"}
-                              onChange={(e) => upd(p.id, {
-                                status: e.target.value as Status, last: today(),
-                                first: st.first ?? today(),
-                              })}>
-                              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                          </td>
-                          <td className="dim">{ago(st.last)}</td>
-                        </tr>
-                        {isOpen && (
-                          <tr>
-                            <td className="detail" colSpan={3}>
-                              <div className="sm" style={{ marginBottom: 6 }}>
-                                <b>{a.label}.</b> <span className="dim">{a.why}</span>
-                              </div>
-                              <div className="sm dim" style={{ marginBottom: 6 }}>{p.email}</div>
-                              {st.status && st.status !== "not contacted" && (
-                                <div style={{ marginBottom: 6 }}>
-                                  <span className="xs">Channel </span>
-                                  <select value={st.channel ?? "email"}
-                                    onChange={(e) => upd(p.id, { channel: e.target.value as Channel })}>
-                                    {(Object.keys(CHANNELS) as Channel[]).map((c) => (
-                                      <option key={c} value={c}>{CHANNELS[c]}</option>
-                                    ))}
-                                  </select>
-                                </div>
-                              )}
-                              <textarea placeholder="Notes" value={st.notes ?? ""}
-                                onChange={(e) => upd(p.id, { notes: e.target.value })} />
-                              <div className="row" style={{ marginTop: 6 }}>
-                                <button className="tiny" onClick={() => copy(p.email, "Address copied")}>Copy address</button>
-                                {p.postingUrl && <a className="sm" href={p.postingUrl} target="_blank" rel="noopener">posting</a>}
-                                {p.repo && <a className="sm" href={"https://github.com/" + p.repo} target="_blank" rel="noopener">repo</a>}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody></table>
-                    </td>
-                  </tr>
+                          )}
+                          <textarea placeholder="Notes" value={st.notes ?? ""}
+                            onChange={(e) => upd(p.id, { notes: e.target.value })} />
+                          <div className="row" style={{ marginTop: 6 }}>
+                            <button className="tiny" onClick={() => copy(p.email, "Address copied")}>Copy address</button>
+                            {p.postingUrl && <a className="sm" href={p.postingUrl} target="_blank" rel="noopener">posting</a>}
+                            {p.repo && <a className="sm" href={"https://github.com/" + p.repo} target="_blank" rel="noopener">repo</a>}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
             </tbody>

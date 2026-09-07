@@ -15,13 +15,13 @@ import type { Person, PersonState, TemplateKey } from "./types";
    companies that rank highest, and the detail belongs in the reply rather than
    in the ask. The long one goes to a recruiter, who is already talking to you
    and is the person who actually has to file the form. */
-const JVISA = "I'm Canadian - UBC co-op sponsors the J-1, so there's no lottery and no cost to you.";
+const JVISA = "I'm Canadian - UBC co-op sponsors the J-1, at no cost to you.";
 const JVISA_LONG = "I'm a Canadian citizen. UBC Science Co-op sponsors the J-1 through Cultural Vistas - the company files a DS-7002 and the visa is issued at the border. No lottery, no sponsorship cost.";
 
 export interface Ctx {
   first?: string; company?: string; fact?: string; topic?: string; team?: string;
   role?: string; visa?: boolean; said?: string; link?: string; newthing?: string;
-  connect?: string; eng?: string; dates?: string; what?: string;
+  eng?: string; dates?: string; what?: string;
 }
 
 export interface Msg {
@@ -32,40 +32,40 @@ export interface Msg {
 export const T: Record<TemplateKey, (c?: Ctx) => Msg> = {
   "1": (c = {}) => ({
     n: "1", name: "LinkedIn note", limit: 300,
-    note: "300 character limit. LinkedIn silently truncates past it.",
-    text: `Hi ${c.first || "[Name]"} - CS student at UBC, saw you're on ${c.team || "[team/product]"} at ${c.company || "[Company]"}. I've been building LLM retrieval systems and read ${c.fact || "[specific thing]"}. Would value 15 min on how your team approaches ${c.topic || "[topic]"}. Happy to work around your schedule.`.slice(0, 300),
+    note: "300 character limit, and LinkedIn truncates past it without telling you. The counter below is the real length - trim the fact rather than letting the send do it for you.",
+    text: `Hi ${c.first || "[Name]"} - third-year CS at UBC, building LLM retrieval systems. Saw ${c.fact || "[specific thing]"}. Any chance of 15 minutes on ${c.topic || "[topic]"}?`,
   }),
 
   "1a": (c = {}) => ({
     n: "1 alum", name: "LinkedIn note - alum", limit: 300,
-    note: "300 char limit. Use this whenever they went to UBC. Highest reply rate you have.",
-    text: `Hi ${c.first || "[Name]"} - fellow UBC grad, third-year CS. Saw ${c.fact || "[specific thing]"} at ${c.company || "[Company]"}. I build LLM retrieval and eval systems. Would love 15 min on how you got from UBC into ${c.company || "[Company]"}. No ask beyond that.`.slice(0, 300),
+    note: "300 char limit, enforced by LinkedIn rather than by this app - watch the counter. Use this whenever they went to UBC: it is the highest reply rate you have.",
+    text: `Hi ${c.first || "[Name]"} - fellow UBC grad, third-year CS, building LLM retrieval systems. Saw ${c.fact || "[specific thing]"}. Would love 15 minutes on how you got from UBC into ${c.company || "[Company]"}.`,
   }),
 
   "2": (c = {}) => ({
     n: "2", name: "Cold email - you applied", subject: "Applied - one question",
-    note: "Apply FIRST, same day. The application is what makes this ask small. The body is trimmed to leave room for the fact: a researched fact runs 30-40 words and the reply rate falls off a cliff past 100.",
+    note: "Apply FIRST, same day. The application is what makes this ask small. Everything fixed here is trimmed to leave room for the fact: a researched fact runs 30-40 words, the visa line another 12, and the reply rate falls off a cliff past 100.",
     text: `Hi ${c.first || "there"},
 
 I applied for the ${c.role || "[role]"} yesterday - third-year CS at UBC.
 
-I noticed ${c.fact || "[specific fact - the blog post, the repo, the changelog item]"} ${c.connect || "[One sentence on why it connects to what you've built.]"}
+I noticed ${c.fact || "[specific fact - the blog post, the repo, the changelog item]"}
 
-I build LLM application systems. The last one was a semantic-retrieval ticket assistant I benchmarked against a cost budget and shipped to production users.
+Closest thing I've built: a semantic-retrieval ticket assistant, benchmarked against a cost budget and shipped to production users.
 
-Would you have 15 minutes? I'd mainly want to know what your team looks for in interns.${c.visa ? "\n\n" + JVISA : ""}${SIG}`,
+Any chance of 15 minutes on what your team looks for in interns?${c.visa ? "\n\n" + JVISA : ""}${SIG}`,
   }),
 
   "3": (c = {}) => ({
     n: "3", name: "Cold email - no posted role", subject: "15 minutes - UBC CS student",
-    note: "Ask for advice, never a job. It is the only thing a stranger can say yes to.",
+    note: "Ask for advice, never a job - it is the only thing a stranger can say yes to. No visa line here on purpose: the message opens by saying it is not about a role, so raising work authorisation argues against its own frame. It belongs in template 2, where you did apply.",
     text: `Hi ${c.first || "there"},
 
 Third-year CS at UBC. ${c.fact || "[one real specific fact about their work]"}
 
-I build LLM application systems - retrieval, evals, agent orchestration. Last one was a ticket assistant I benchmarked against a token budget and shipped to production users.
+I build LLM retrieval and eval systems - the last one shipped to production on a measured token budget.
 
-I'm not asking about a role. I'd like 15 minutes on ${c.topic || "[the specific technical thing]"}, and what you'd want to see from someone trying to do this work well.${c.visa ? "\n\n" + JVISA : ""}${SIG}`,
+Not asking about a role. Fifteen minutes on ${c.topic || "[the specific technical thing]"}, and what you'd want to see from someone doing this well.${SIG}`,
   }),
 
   "4": (c = {}) => ({

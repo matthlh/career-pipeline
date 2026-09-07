@@ -114,14 +114,19 @@ describe("nextAction", () => {
 
 describe("the send window", () => {
   it("leaves you alone when they are in your timezone", () => {
-    expect(sendWindow({ location: "San Francisco, CA", company: "X" }).off).toBe(0);
+    expect(sendWindow({ location: "San Francisco, CA" }).off).toBe(0);
   });
   it("shifts east coast into the small hours, which is what scheduling is for", () => {
-    const w = sendWindow({ location: "New York, NY", company: "X" });
+    const w = sendWindow({ location: "New York, NY" });
     expect(w).toMatchObject({ off: 3, name: "Eastern", yours: "3am-6am" });
   });
   it("does not wrap past midnight into a nonsense range", () => {
-    expect(sendWindow({ location: "London", company: "X" }).yours).toBe("10pm-1am");
+    expect(sendWindow({ location: "London" }).yours).toBe("10pm-1am");
+  });
+  it("ignores the company name, which is not a timezone", () => {
+    // "Boston Dynamics" in San Francisco was being told to send at 3am.
+    expect(sendWindow({ location: "San Francisco, CA" }).name).toBe("Pacific");
+    expect(sendWindow({ location: null }).name).toBe("Pacific");
   });
 });
 
