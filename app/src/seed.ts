@@ -29,3 +29,27 @@ export const SIG = "\n\nMatt\ngithub.com/matthlh";
 export const DEMO = SEED.generated === "example";
 
 export const REPO_URL = "https://github.com/matthlh/career-pipeline";
+
+/* Whether this copy is being served from a public URL rather than off disk or a
+   dev server. Used only to warn: real data loaded here is visible to nobody
+   else, but it *is* visible to whoever is looking at the screen. */
+export const PUBLIC_ORIGIN =
+  typeof location !== "undefined" &&
+  (location.protocol === "https:" || location.protocol === "http:") &&
+  !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+
+/* Session-scoped, not localStorage: "I am showing someone my screen" lasts as
+   long as the sitting does. It resets on the next launch so you cannot leave
+   yourself staring at invented people and wondering where your list went. */
+const SHOW_DEMO = "career.showDemo";
+
+export function showingDemo(): boolean {
+  try { return sessionStorage.getItem(SHOW_DEMO) === "1"; } catch { return false; }
+}
+
+export function setShowingDemo(on: boolean): void {
+  try {
+    if (on) sessionStorage.setItem(SHOW_DEMO, "1");
+    else sessionStorage.removeItem(SHOW_DEMO);
+  } catch { /* private window */ }
+}

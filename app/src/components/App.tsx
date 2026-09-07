@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nextPeak, today } from "../rules";
-import { DEMO, REPO_URL, SEED } from "../seed";
+import { DEMO, PUBLIC_ORIGIN, REPO_URL, SEED, setShowingDemo, showingDemo } from "../seed";
 import { applyTheme, loadState, loadTheme, saveState, watchSystemTheme, type Theme } from "../storage";
 import { Logo, toast } from "../ui";
 import { People } from "./People";
@@ -86,9 +86,24 @@ export function App() {
   /* Two ways in. Locally, data.js ships alongside the page. On a published copy
      there is no data.js - you import the export file, which carries the people
      as well as the progress, so no one's address is ever on a public URL. */
-  const source = state.people?.length ? null : dir;
-  const people = state.people?.length ? state.people : (source?.people ?? SEED.people);
-  const counts = state.counts ?? source?.counts ?? SEED.counts;
+  /* One switch for showing the screen to someone. It swaps the *displayed*
+     people for the invented ones without disconnecting anything, because the
+     alternative - disconnect, demo, remember to reconnect - is the kind of
+     thing you forget in exactly the direction you cannot afford to. */
+  const [demoView, setDemoView] = useState(showingDemo);
+  function setDemoViewPersisted(on: boolean) {
+    setShowingDemo(on);
+    setDemoView(on);
+  }
+
+  const imported = state.people?.length ? state.people : null;
+  const real = imported ?? dir?.people ?? null;
+  const realCounts = state.counts ?? dir?.counts ?? null;
+  /* Real data exists but is being withheld from the screen on purpose. */
+  const hidden = demoView && !!real;
+
+  const people = hidden ? SEED.people : (real ?? SEED.people);
+  const counts = hidden ? SEED.counts : (realCounts ?? SEED.counts);
 
   /* Person state is merged, never replaced, so a data.js refresh that adds new
      people cannot wipe what you have already tracked. */
@@ -211,7 +226,34 @@ export function App() {
         </button>
       </div>
 
-      {DEMO && (
+      {/* Real data on a public URL. Nobody else can see it - there is no server
+          and nothing is uploaded - but the person next to you can. */}
+      {PUBLIC_ORIGIN && real && !hidden && (
+        <div className="warn" style={{ marginTop: 14, marginBottom: 0 }}>
+          <b>Your own data is loaded on the public URL.</b> Only in this browser: nothing was
+          uploaded, and every other visitor gets the twelve invented people. But anyone looking
+          at this screen is looking at real addresses.
+          <div className="row" style={{ marginTop: 9 }}>
+            <button className="tiny sel" onClick={() => setDemoViewPersisted(true)}>
+              Switch to example data
+            </button>
+          </div>
+        </div>
+      )}
+
+      {hidden && (
+        <div className="warn" style={{ marginTop: 14, marginBottom: 0 }}>
+          <b>Showing example data.</b> Your {real!.length} real contacts are still connected and
+          untouched — they are just off the screen. This resets when you close the browser.
+          <div className="row" style={{ marginTop: 9 }}>
+            <button className="tiny sel" onClick={() => setDemoViewPersisted(false)}>
+              Show my data again
+            </button>
+          </div>
+        </div>
+      )}
+
+      {DEMO && !real && (
         <div className="warn" style={{ marginTop: 14, marginBottom: 0 }}>
           <b>This is the demo.</b> Twelve invented people at invented companies on the{" "}
           <code>.example</code> domain reserved by RFC 2606, so nothing here resolves to anyone's
@@ -306,7 +348,8 @@ export function App() {
         {dirState === "on" && (
           <div style={{ marginBottom: 6 }}>
             Reading <code>data.js</code> from your connected folder — re-read on every visit, so
-            a pipeline run shows up without importing anything.
+            a pipeline run shows up without importing anything. It is read in this browser and
+            never sent anywhere; this page has no network calls of its own.
           </div>
         )}
         {counts.people} people from {counts.companies} companies, data generated{" "}
