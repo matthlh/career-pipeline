@@ -1,11 +1,13 @@
 name: Deploy app to Pages
 
-# Publishes app/ as the site root. There is no build step - index.html pulls
-# React and Babel from cdnjs at runtime - so this uploads the directory as-is.
+# Publishes the outreach app. The app is mid-migration from a single static
+# HTML file to a Vite build, so this handles both: if app/package.json exists it
+# builds and publishes app/dist, otherwise it publishes app/ as-is. Whichever
+# state the repo is in, the deploy works.
 #
-# app/data.js is gitignored, so the published copy has no real contact data.
-# data.example.js only assigns window.SEED when data.js is absent, which on
-# Pages it always is, so a visitor sees the twelve invented people instead.
+# The real dataset never ships. app/data.js (and app/public/data.js under Vite)
+# is gitignored, so the published copy falls back to the invented example people
+# and a visitor sees a working demo rather than anyone's actual inbox.
 
 on:
   push:
@@ -31,27 +33,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The same check CLAUDE.md asks for before a commit, enforced at the point
-      # where it actually matters. Only RFC 2606 reserved domains may ship: the
-      # .example TLD used by data.example.js, and example.com for the FROM
-      # placeholder. Anything else is a real person's inbox and fails the build.
+      - name: Decide how to publish
+        id: mode
+        run: |
+          if [ -f app/package.json ]; then
+            echo "dir=app/dist" >> "$GITHUB_OUTPUT"
+            echo "build=true"   >> "$GITHUB_OUTPUT"
+            echo "Vite build -> app/dist"
+          else
+            echo "dir=app"    >> "$GITHUB_OUTPUT"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "Static -> app/"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.mode.outputs.build == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Build
+        if: steps.mode.outputs.build == 'true'
+        working-directory: app
+        run: |
+          npm ci
+          npm run build
+
+      # The check CLAUDE.md asks for before a commit, enforced where it actually
+      # matters: on the bytes about to become a public website. Only RFC 2606
+      # reserved domains may ship - the .example TLD the demo data uses, and
+      # example.com for the sender placeholder. Anything else is a real person's
+      # inbox and fails the deploy. node_modules is excluded because package
+      # metadata is full of maintainer addresses that never reach the bundle.
       - name: Refuse to publish real addresses
         run: |
-          leaks=$(grep -rhoE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' app/ \
+          leaks=$(grep -rhoE --exclude-dir=node_modules \
+            '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' \
+            "${{ steps.mode.outputs.dir }}" \
             | grep -viE '@[a-zA-Z0-9.-]*\.example$|@example\.(com|org|net)$' \
             | sort -u) || true
           if [ -n "$leaks" ]; then
-            echo "::error::Real-looking addresses found in app/ - refusing to publish."
+            echo "::error::Real-looking addresses in ${{ steps.mode.outputs.dir }} - refusing to publish."
             echo "$leaks"
             exit 1
           fi
-          echo "No real addresses in app/."
+          echo "Clean: nothing but reserved example domains."
 
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: app
+          path: ${{ steps.mode.outputs.dir }}
 
       - id: deployment
         uses: actions/deploy-pages@v4

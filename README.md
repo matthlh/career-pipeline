@@ -1,7 +1,13 @@
 # Career pipeline
 
+**[Open the live app →](https://matthlh.github.io/career-pipeline/)**
+
 A job-search system that does the parts a computer is good at and refuses to do
 the part it isn't.
+
+The live copy runs on twelve invented people with progress pre-seeded, so it has
+something to show. No real contact data is ever published — see
+[Your data stays yours](#your-data-stays-yours).
 
 It reads hiring threads, works out what each company actually does, finds a real
 human at that company from public commit history, and drafts a message. Then it
@@ -85,3 +91,36 @@ runs cannot silently discard each other's work. Safe to kill any job mid-run.
 The real store is gitignored. `app/data.example.js` holds twelve invented people
 at invented companies on the RFC 2606 `.example` TLD, so a fresh clone runs with
 demo data and nobody's actual inbox ends up in a public repository.
+
+## Your data stays yours
+
+Worth being precise about, because the repo is public and the data is not.
+
+**Nothing you track is ever uploaded.** GitHub Pages is static hosting — HTML, CSS
+and JavaScript, no server and no database. There is no endpoint for the app to send
+anything to, and it does not have one to try.
+
+| Where your data lives | Who can read it |
+|---|---|
+| `data/*.jsonl` and `app/data.js` | Your machine only. Both gitignored, never pushed. |
+| Progress you click in the app | `localStorage`, in the one browser you clicked it in. |
+| The public repo and the live site | Twelve invented people on the `.example` TLD. That is all. |
+
+`localStorage` is scoped to a single origin in a single browser profile. Another
+visitor to the live site gets the example data and cannot see anything you
+imported; their browser and yours share nothing.
+
+So the published URL is usable as your real tool: open it, **Import** an export
+from your machine, and it becomes your copy. Three caveats worth knowing first:
+
+- The origin `matthlh.github.io` is shared by every project published under that
+  account, so another Pages site *of your own* could read that storage. Nobody
+  else's can.
+- It is stored unencrypted. Anyone with your unlocked browser can read it.
+- It does not sync. Marking someone sent on your phone will not appear on your
+  laptop — export and import when you switch. That is the point at which a real
+  backend earns its keep, and not before.
+
+**Showing it to someone:** open the live URL in a private window. No import has
+happened there, so it loads the invented people with their progress pre-seeded and
+your real pipeline stays invisible.

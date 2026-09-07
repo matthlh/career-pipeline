@@ -24,13 +24,17 @@ a separate key, so it does not travel in an export.
 
 ## Publishing to GitHub Pages
 
-`app/data.js` is gitignored. It holds real people's addresses, and GitHub Pages
-on a free account is public only. A published copy therefore runs on the example
-data, which is what you want for showing the project to anyone.
+Automatic. `.github/workflows/pages.yml` deploys on every push to `main`, to
+<https://matthlh.github.io/career-pipeline/>. Nothing to click.
 
-1. Push the repo.
-2. Settings, Pages, Source: main branch, `/docs` folder, having renamed `app` to
-   `docs`. Or push `app/` to a `gh-pages` branch.
+The workflow publishes `app/dist` when `app/package.json` exists and plain `app/`
+otherwise, so it keeps working across the migration to a build step. Before it
+uploads anything it greps the output for email addresses and fails the deploy on
+any domain that is not RFC 2606 reserved — a real address can only reach the
+public site by getting past a red build.
+
+`data.js` is gitignored and so is never in the artifact, which is what makes the
+published copy safe: it falls back to the example people automatically.
 
 To use the published copy with your own data: open the local copy, hit **Export
 progress** (the file carries people, counts and progress together), then
