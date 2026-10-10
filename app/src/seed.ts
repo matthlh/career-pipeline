@@ -47,7 +47,7 @@ export const SIG = "\n\nMatt\ngithub.com/matthlh";
  *  server and Pages. */
 export const DEMO = SEED.generated === "example";
 
-export const REPO_URL = "https://github.com/matthlh/career-pipeline";
+export const REPO_URL = "https://github.com/matthlh/groundwork";
 
 /* Whether this copy is being served from a public URL rather than off disk or a
    dev server. Used only to warn: real data loaded here is visible to nobody

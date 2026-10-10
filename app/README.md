@@ -61,7 +61,7 @@ a separate key, so it does not travel in an export.
 ## Publishing to GitHub Pages
 
 Automatic. `.github/workflows/pages.yml` deploys on every push to `main`, to
-<https://matthlh.github.io/career-pipeline/>. Nothing to click.
+<https://matthlh.github.io/groundwork/>. Nothing to click.
 
 Tests and typecheck run first; the deploy only runs if they pass. The workflow
 then builds `app/dist` and, before uploading anything, runs `scripts/leakcheck.sh`

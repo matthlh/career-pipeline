@@ -41,7 +41,7 @@ def is_skipped(domain):
 
 
 def fetch(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "career-pipeline/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "groundwork/1.0"})
     for attempt in range(5):
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
