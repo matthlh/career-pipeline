@@ -175,7 +175,7 @@ export function App() {
         <div className="brand">
           <Logo />
           <div>
-          <h1>Ledger</h1>
+          <h1>Groundwork</h1>
           <div className="sm dim">
             {example ? "A job-search ledger, running on invented data."
               : sent.total === 0 ? "Nothing sent yet."

@@ -38,7 +38,7 @@ ROLE_ADDR = re.compile(r"^(info|hello|contact|support|sales|admin|team|help|nore
 
 def _gh(path):
     headers = {
-        "User-Agent": "career-pipeline/1.0",
+        "User-Agent": "groundwork/1.0",
         "Accept": "application/vnd.github+json",
     }
     if GH_TOKEN:

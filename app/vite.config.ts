@@ -8,7 +8,7 @@ import react from "@vitejs/plugin-react";
 /* Two constraints shape this config, and both come from how the app is used.
 
    base: "./" - the built copy has to work at a GitHub Pages project path
-   (/career-pipeline/) and at a file:// path, without being told which.
+   (/groundwork/) and at a file:// path, without being told which.
 
    format: "iife" plus the classicScript plugin below - a <script type="module">
    is blocked by CORS on file://, so a module build would mean the app could

@@ -1,6 +1,6 @@
-# Career pipeline
+# Groundwork
 
-**[Open the live app →](https://matthlh.github.io/career-pipeline/)**
+**[Open the live app →](https://matthlh.github.io/groundwork/)**
 
 A job-search system that does the parts a computer is good at and refuses to do
 the part it isn't.

@@ -19,7 +19,7 @@ import store
 import llm
 
 PUB = "https://nextplayso.substack.com"
-UA = {"User-Agent": "Mozilla/5.0 (compatible; career-pipeline/1.0)"}
+UA = {"User-Agent": "Mozilla/5.0 (compatible; groundwork/1.0)"}
 WORKERS = 5
 
 SKIP = {
