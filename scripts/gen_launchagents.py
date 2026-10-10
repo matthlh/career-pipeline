@@ -18,7 +18,7 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LABEL = "com.matthlh.career-pipeline"
+LABEL = "com.matthlh.groundwork"
 
 # minute hour dom month dow, then the command
 CRON = re.compile(r"^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)$")
@@ -80,7 +80,7 @@ def main():
 
     found = entries()
     if not found:
-        raise SystemExit("no career-pipeline entries in the crontab")
+        raise SystemExit("no groundwork entries in the crontab")
 
     out_dir = os.path.expanduser(args.out) if args.out else None
     if out_dir:
