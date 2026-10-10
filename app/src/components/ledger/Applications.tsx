@@ -1,16 +1,18 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { newId } from "../../ledger/apply";
 import {
   DEAD, QUIET_DAYS, STATUS_LABEL, STATUS_ORDER, deadlineOf, fmtDeadline, groupApplications, nextStep,
   type AppGroup,
 } from "../../ledger/rules";
 import {
-  TILES, TILE_LABEL, TODO_DAYS, funnel, heldByCompany, isHeld, sortSaved, todoLanes,
+  TILES, TILE_LABEL, TODO_DAYS, followUps, funnel, heldByCompany, isHeld, sortSaved, todoLanes,
   type Tile, type Todo, type TodoItem, type TodoKind,
 } from "../../ledger/todo";
-import type { AppEvent, AppStatus, Application, LedgerApi, Referral } from "../../ledger/types";
-import { daysSince } from "../../rules";
-import { AddForm, Chip, Choice, InlineText, Section, Toolbar, matches, todayLocal, type Tone } from "./common";
+import type { AppEvent, AppStatus, Application, LedgerApi, Outreach, Referral } from "../../ledger/types";
+import { FOLLOWUP_DAYS, daysSince } from "../../rules";
+import {
+  AddForm, Chip, Choice, Danger, InlineText, Section, Toolbar, fmtWhen, matches, todayLocal, type Tone,
+} from "./common";
 import "./applications.css";
 
 /* The applications view, and the screen he opens most. Three questions, in
@@ -67,18 +69,6 @@ export function historyNewestFirst(events: readonly AppEvent[]): AppEvent[] {
     .map((e, i) => ({ e, i, t: t(e.at) }))
     .sort((x, y) => (y.t === x.t ? y.i - x.i : y.t > x.t ? 1 : -1))
     .map((x) => x.e);
-}
-
-/** An event time as a local day ("Mon Oct 5"). A full ISO stamp is UTC, so it is
- *  converted; a bare date is already local and is never shifted. */
-export function fmtWhen(at: string): string {
-  const s = (at ?? "").trim();
-  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
-    const n = Date.parse(s);
-    if (!Number.isNaN(n)) return fmtDeadline({ deadline: todayLocal(new Date(n)) });
-  }
-  const d = fmtDeadline({ deadline: s.slice(0, 10) });
-  return d === "no date" ? s : d;
 }
 
 /** The one date a row shows: when it closes while it is still to apply to,
@@ -145,6 +135,7 @@ export function Applications({ api, now }: Props) {
 
   const counts = useMemo(() => funnel(apps), [apps]);
   const todo = useMemo(() => todoLanes(apps, now), [apps, now]);
+  const due = useMemo(() => followUps(api.ledger.outreach, now), [api.ledger.outreach, now]);
 
   /* A tile is a filter: tap Applied and only the applied rows stay. Closed is
      hidden by default, so its tile also turns it on. */
@@ -178,7 +169,7 @@ export function Applications({ api, now }: Props) {
             </button>
           ))}
         </div>
-        <TodoPanel todo={todo} api={api} now={now} />
+        <TodoPanel todo={todo} due={due} api={api} now={now} />
       </aside>
 
       <div className="ap-main">
@@ -199,7 +190,7 @@ export function Applications({ api, now }: Props) {
         {tile && (
           <div className="ap-focus sm dim" role="status">
             Showing <b>{TILE_LABEL[tile]}</b> only.{" "}
-            <button type="button" className="lg-btn lg-btn-quiet ap-act" onClick={() => setTile(null)}>Show everything</button>
+            <button type="button" className="lg-btn lg-btn-quiet lg-act" onClick={() => setTile(null)}>Show everything</button>
           </div>
         )}
 
@@ -207,7 +198,7 @@ export function Applications({ api, now }: Props) {
           <div className="lg-empty">
             {apps.length === 0 ? "No applications yet. Add the first one above." : (
               <>Nothing matches.{" "}
-                <button type="button" className="lg-btn lg-btn-quiet ap-act" onClick={clear}>Clear filters</button></>
+                <button type="button" className="lg-btn lg-btn-quiet lg-act" onClick={clear}>Clear filters</button></>
             )}
           </div>
         ) : groups.map((g) => {
@@ -241,7 +232,7 @@ export function Applications({ api, now }: Props) {
 
 /* ------------------------------------------------------------ do next -- */
 
-function TodoPanel({ todo, api, now }: { todo: Todo; api: LedgerApi; now: Date }) {
+function TodoPanel({ todo, due, api, now }: { todo: Todo; due: Outreach[]; api: LedgerApi; now: Date }) {
   const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + TODO_DAYS);
   const quiet = todo.now.length === 0;
   return (
@@ -260,28 +251,63 @@ function TodoPanel({ todo, api, now }: { todo: Todo; api: LedgerApi; now: Date }
       {todo.later > 0 && (
         <p className="ap-todo-later sm dim">{plural(todo.later, "more posting closes", "more postings close")} after that.</p>
       )}
-      <Lane title="Rolling, no deadline" items={todo.rolling} api={api} now={now}
-        hint="Apply when there is a slot. Nothing here expires, and nothing here nags." />
-      <Lane title={`Quiet ${QUIET_DAYS}+ days`} items={todo.nudge} api={api} now={now}
-        hint="No word since it went in. One nudge each, never two." />
-      <Lane title="Deadline passed" items={todo.expired} api={api} now={now}
-        hint="Still marked to apply. Mark the ones that went in, close the rest." />
+      {/* Open by default: day 7 is a day, not a week, and this is the one lane
+          that is about a person rather than a posting. */}
+      <Lane title="Follow up today" count={due.length} open
+        hint={`Day ${FOLLOWUP_DAYS}, nothing back. One follow-up each, never two, and it has to say something new.`}>
+        {due.map((o) => <FollowUpRow key={o.id} o={o} api={api} now={now} />)}
+      </Lane>
+      <Lane title="Rolling, no deadline" count={todo.rolling.length}
+        hint="Apply when there is a slot. Nothing here expires, and nothing here nags.">
+        {todo.rolling.map((it) => <TodoRow key={it.apps[0]!.id} item={it} api={api} now={now} />)}
+      </Lane>
+      <Lane title={`Quiet ${QUIET_DAYS}+ days`} count={todo.nudge.length}
+        hint="No word since it went in. One nudge each, never two.">
+        {todo.nudge.map((it) => <TodoRow key={it.apps[0]!.id} item={it} api={api} now={now} />)}
+      </Lane>
+      <Lane title="Deadline passed" count={todo.expired.length}
+        hint="Still marked to apply. Mark the ones that went in, close the rest.">
+        {todo.expired.map((it) => <TodoRow key={it.apps[0]!.id} item={it} api={api} now={now} />)}
+      </Lane>
     </section>
   );
 }
 
-function Lane({ title, hint, items, api, now }: {
-  title: string; hint: string; items: TodoItem[]; api: LedgerApi; now: Date;
+function Lane({ title, hint, count, open, children }: {
+  title: string; hint: string; count: number; open?: boolean; children: ReactNode;
 }) {
-  if (items.length === 0) return null;
+  if (count === 0) return null;
   return (
-    <details className="ap-lane">
-      <summary><span className="ap-lane-title">{title}</span><span className="lg-count">{items.length}</span></summary>
+    <details className="ap-lane" open={open}>
+      <summary><span className="ap-lane-title">{title}</span><span className="lg-count">{count}</span></summary>
       <p className="ap-lane-hint sm dim">{hint}</p>
-      <ul className="ap-todo">
-        {items.map((it) => <TodoRow key={it.apps[0]!.id} item={it} api={api} now={now} />)}
-      </ul>
+      <ul className="ap-todo">{children}</ul>
     </details>
+  );
+}
+
+/** One thread whose follow-up is due. The two clicks that end its stay here:
+ *  the follow-up went, or they wrote back. Everything else is on Outreach. */
+function FollowUpRow({ o, api, now }: { o: Outreach; api: LedgerApi; now: Date }) {
+  const set = (fields: Partial<Outreach>) => api.edit({ kind: "outreach", target: o.id, op: "set", fields });
+  const days = daysSince(o.sent, now);
+  return (
+    <li className="ap-todo-row ap-todo-followup">
+      <span className="ap-todo-kind">Follow up</span>
+      <div className="ap-todo-body">
+        <span className="ap-todo-co">{o.name}{o.company && <span className="dim"> · {o.company}</span>}</span>
+        <span className="ap-todo-title">{o.what}</span>
+        <div className="ap-todo-note dim">
+          Sent {fmtWhen(o.sent)}{days !== null && `, ${plural(days, "day", "days")} with no word.`}
+        </div>
+      </div>
+      <div className="ap-todo-acts">
+        <button type="button" className="lg-btn lg-act" aria-label={`Followed up with ${o.name}`}
+          onClick={() => set({ followedUp: todayLocal(now) })}>Followed up</button>
+        <button type="button" className="lg-btn lg-btn-quiet lg-act" aria-label={`${o.name} replied`}
+          onClick={() => set({ status: "replied" })}>Replied</button>
+      </div>
+    </li>
   );
 }
 
@@ -334,10 +360,10 @@ function TodoRow({ item, api, now }: { item: TodoItem; api: LedgerApi; now: Date
       </div>
       {due && <span className={`ap-todo-when${kind === "expired" ? " ap-late" : ""}`}>{due}</span>}
       <div className="ap-todo-acts">
-        {!many && href && <a className="lg-btn lg-btn-quiet ap-act" href={href} target="_blank" rel="noopener">Open posting</a>}
+        {!many && href && <a className="lg-btn lg-btn-quiet lg-act" href={href} target="_blank" rel="noopener">Open posting</a>}
         {(kind === "apply" || kind === "rolling" || kind === "expired") && !many && (
           <>
-            <button type="button" className="lg-btn ap-act" aria-label={`Mark ${who} applied`}
+            <button type="button" className="lg-btn lg-act" aria-label={`Mark ${who} applied`}
               onClick={() => event(a, "applied")}>Applied</button>
             {kind === "expired"
               ? <Danger label="Close" aria={`Close ${who}`} onConfirm={() => event(a, "closed")} />
@@ -346,7 +372,7 @@ function TodoRow({ item, api, now }: { item: TodoItem; api: LedgerApi; now: Date
           </>
         )}
         {kind === "referral" && (askable
-          ? <button type="button" className="lg-btn lg-btn-quiet ap-act" aria-label={`Referral asked at ${who}`}
+          ? <button type="button" className="lg-btn lg-btn-quiet lg-act" aria-label={`Referral asked at ${who}`}
               onClick={() => item.apps.forEach((x) => api.edit({ kind: "application", target: x.id, op: "set", fields: { referral: "asked" } }))}>
               Mark asked
             </button>
@@ -358,24 +384,6 @@ function TodoRow({ item, api, now }: { item: TodoItem; api: LedgerApi; now: Date
         {kind === "nudge" && <Danger label="Close" aria={`Close ${who}`} onConfirm={() => event(a, "closed")} />}
       </div>
     </li>
-  );
-}
-
-/** A button that asks once. The second tap within three seconds does it;
- *  otherwise it forgets, so a thumb that slips on a phone changes nothing. */
-function Danger({ label, aria, onConfirm }: { label: string; aria: string; onConfirm: () => void }) {
-  const [armed, setArmed] = useState(false);
-  useEffect(() => {
-    if (!armed) return;
-    const t = setTimeout(() => setArmed(false), 3000);
-    return () => clearTimeout(t);
-  }, [armed]);
-  return (
-    <button type="button" className={`lg-btn lg-btn-quiet ap-act${armed ? " ap-act-armed" : ""}`}
-      aria-label={armed ? `Confirm: ${aria}` : aria}
-      onClick={() => { if (armed) { setArmed(false); onConfirm(); } else setArmed(true); }}>
-      {armed ? "Sure?" : label}
-    </button>
   );
 }
 
@@ -473,11 +481,11 @@ function AppDetail({ a, api }: { a: Application; api: LedgerApi }) {
       )}
       <div className="ap-detail-acts">
         {href
-          ? <a className="lg-btn lg-btn-quiet ap-act" href={href} target="_blank" rel="noopener">Open posting</a>
+          ? <a className="lg-btn lg-btn-quiet lg-act" href={href} target="_blank" rel="noopener">Open posting</a>
           : (a.where || a.link) && <span className="lg-card-sub ap-where">{a.where || a.link}</span>}
         {a.status === "saved" && (
           <>
-            <button type="button" className="lg-btn ap-act" aria-label={`Mark ${who} applied`}
+            <button type="button" className="lg-btn lg-act" aria-label={`Mark ${who} applied`}
               onClick={() => event("applied")}>Applied</button>
             <Danger label="Skip" aria={`Skip ${who}`}
               onConfirm={() => api.edit({ kind: "application", target: a.id, op: "delete" })} />

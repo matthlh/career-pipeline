@@ -29,6 +29,7 @@ export function ledgerSeed(seed: Seed): LedgerSeed {
     companies: l.companies ?? [],
     opensource: l.opensource ?? [],
     learning: l.learning ?? [],
+    outreach: l.outreach ?? [],
     appliedEdits: l.appliedEdits ?? [],
   };
 }

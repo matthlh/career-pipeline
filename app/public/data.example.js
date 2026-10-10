@@ -938,6 +938,74 @@ window.SEED = window.SEED || {
     "added": "2026-09-09"
    }
   ],
+  "outreach": [
+   {
+    "id": "out-mvb2k8g0",
+    "name": "Priya Raghunathan",
+    "company": "Stellwater",
+    "channel": "email",
+    "what": "Replaying backfill through the live ingest path",
+    "sent": "2026-10-02",
+    "followedUp": null,
+    "status": "sent",
+    "note": null
+   },
+   {
+    "id": "out-mvcq1x40",
+    "name": "Sam Iyer",
+    "company": "Pitchpine",
+    "channel": "email",
+    "what": "Payroll for crews that move every three weeks",
+    "sent": "2026-10-08",
+    "followedUp": null,
+    "status": "sent",
+    "note": "Mentioned the harvest scheduler PR."
+   },
+   {
+    "id": "out-mv7h2zc0",
+    "name": "Dana Okonkwo",
+    "company": "Lantern",
+    "channel": "email",
+    "what": "Trace merge off the hot path",
+    "sent": "2026-09-29",
+    "followedUp": "2026-10-06",
+    "status": "sent",
+    "note": null
+   },
+   {
+    "id": "out-mu9s4d80",
+    "name": "Wei Nakamura",
+    "company": "Overtone",
+    "channel": "email",
+    "what": "Retry budget for the embeddings client, and a question",
+    "sent": "2026-09-08",
+    "followedUp": null,
+    "status": "replied",
+    "note": "Call Sept 22. Offered to refer me for W27."
+   },
+   {
+    "id": "out-muqw7a00",
+    "name": "Marcus Alvi",
+    "company": "Fernbank Systems",
+    "channel": "linkedin",
+    "what": "Good to meet you at the alumni night",
+    "sent": "2026-09-20",
+    "followedUp": null,
+    "status": "replied",
+    "note": null
+   },
+   {
+    "id": "out-mtf3n9k0",
+    "name": "Nadia Ferreira",
+    "company": "Quarterturn",
+    "channel": "email",
+    "what": "Your posting on the SDK team",
+    "sent": "2026-08-20",
+    "followedUp": "2026-08-27",
+    "status": "no_reply",
+    "note": null
+   }
+  ],
   "appliedEdits": []
  }
 };

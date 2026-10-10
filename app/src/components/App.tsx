@@ -9,17 +9,20 @@ import { connectFolderForWrites, useLedger } from "../ledger/useLedger";
 import type { LedgerApi } from "../ledger/types";
 import { Applications } from "./ledger/Applications";
 import { Learning } from "./ledger/Learning";
+import { Outreach } from "./ledger/Outreach";
 import { TemplatesTab } from "./TemplatesTab";
 import type { Seed } from "../types";
 
 const THEME_LABEL: Record<Theme, string> = { auto: "System", light: "Light", dark: "Dark" };
 
-/* Three tabs. People, Companies and Open source were views too (Oct 4-9),
+/* Four tabs. People, Companies and Open source were views too (Oct 4-9),
    and went: he is not going to work contacts by hand, so a screen for them was
-   a screen to feel bad in front of. The data behind them is still in the seed. */
-type Tab = "applications" | "learning" | "templates";
+   a screen to feel bad in front of. The data behind them is still in the seed.
+   Outreach (Oct 10) is the other thing: not a list of people to work, a log of
+   the messages that actually went, and the day each one's follow-up is due. */
+type Tab = "applications" | "outreach" | "learning" | "templates";
 const TABS: [Tab, string][] = [
-  ["applications", "Applications"], ["learning", "Learning"], ["templates", "Templates"],
+  ["applications", "Applications"], ["outreach", "Outreach"], ["learning", "Learning"], ["templates", "Templates"],
 ];
 
 /* Session-scoped, like the demo switch: a reload lands where you were, a fresh
@@ -69,7 +72,7 @@ export function App() {
     saveTab(t);
   }
 
-  /* Three tabs fit any phone, but the bar still scrolls if it ever has to;
+  /* Four tabs fit any phone, but the bar still scrolls if it ever has to;
      keep the current tab in view without moving the page itself. */
   useEffect(() => {
     const bar = tabsRef.current;
@@ -282,6 +285,7 @@ export function App() {
       </div>
 
       {tab === "applications" && <Applications api={api} now={now} />}
+      {tab === "outreach" && <Outreach api={api} now={now} />}
       {tab === "learning" && <Learning api={api} now={now} />}
       {tab === "templates" && <div className="narrow"><TemplatesTab /></div>}
 

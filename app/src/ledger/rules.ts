@@ -1,8 +1,10 @@
-import { FOLLOWUP_DAYS, daysSince } from "../rules";
+import { FOLLOWUP_DAYS, daysSince, nextAction, today } from "../rules";
+import type { Action, Status } from "../types";
 import { withDerivedCompanies } from "./apply";
 import {
   companyId,
   type AppStatus, type Application, type Company, type Ledger, type LedgerPerson, type OpenSource,
+  type Outreach, type OutreachStatus,
 } from "./types";
 
 /* ====================== the ledger rules ================================
@@ -128,6 +130,38 @@ export function personFollowUp(person: Pick<LedgerPerson, "state" | "last">, now
   if (person.state !== "contacted" && person.state !== "awaiting_reply") return false;
   const d = daysSince(person.last?.slice(0, 10) || undefined, now);
   return d !== null && d >= FOLLOWUP_DAYS;
+}
+
+/* ------------------------------------------------------------- outreach -- */
+
+export const OUTREACH_STATUSES: readonly OutreachStatus[] = ["sent", "replied", "no_reply"];
+
+export const OUTREACH_LABEL: Record<OutreachStatus, string> = {
+  sent: "Sent", replied: "Replied", no_reply: "No reply",
+};
+
+/** The log's three states on the ladder nextAction reads. "no_reply" is what
+ *  the queue called dead: two unanswered touches, or closed by hand. */
+const LADDER: Record<OutreachStatus, Status> = { sent: "messaged", replied: "replied", no_reply: "dead" };
+
+/** The last message he sent them: the follow-up when there was one. */
+export const lastTouch = (o: Pick<Outreach, "sent" | "followedUp">): string => o.followedUp ?? o.sent;
+
+/** What to do about one thread. This is nextAction, the engine the outreach
+ *  queue ran on, fed the thread's state - so the follow-up rule lives in one
+ *  place: day FOLLOWUP_DAYS, once, and after that it is their move. */
+export function outreachAction(o: Outreach, now: Date): Action {
+  return nextAction({ applyUrl: null },
+    { status: LADDER[o.status], last: lastTouch(o), ups: o.followedUp ? 1 : 0 }, now);
+}
+
+/** The local day the one follow-up falls due, FOLLOWUP_DAYS after the message.
+ *  Null once it went, once they replied, once he closed it, or when the sent
+ *  date is not one. */
+export function followUpDue(o: Pick<Outreach, "status" | "sent" | "followedUp">): string | null {
+  if (o.status !== "sent" || o.followedUp) return null;
+  const d = deadlineOf({ deadline: o.sent });
+  return d ? today(new Date(d.getFullYear(), d.getMonth(), d.getDate() + FOLLOWUP_DAYS)) : null;
 }
 
 /* ------------------------------------------------------------- grouping -- */

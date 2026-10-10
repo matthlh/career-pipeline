@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { FOLLOWUP_DAYS, today } from "../rules";
 import {
-  TILES, funnel, heldByCompany, latestNote, sentCounts, sortSaved, tileOf, todoLanes,
+  TILES, followUps, funnel, heldByCompany, latestNote, sentCounts, sortSaved, tileOf, todoLanes,
 } from "./todo";
-import type { AppEvent, Application } from "./types";
+import type { AppEvent, Application, Outreach } from "./types";
 
 // Friday 9 Oct 2026, 9pm local. The window closes Fri Oct 16 23:59.
 const NOW = new Date(2026, 9, 9, 21, 0);
@@ -129,6 +130,40 @@ describe("todoLanes", () => {
     const before = JSON.stringify(xs);
     todoLanes(xs, NOW);
     expect(JSON.stringify(xs)).toBe(before);
+  });
+});
+
+describe("followUps", () => {
+  const daysAgo = (n: number) => today(new Date(2026, 9, 9 - n, 12));
+  const thread = (id: string, over: Partial<Outreach> = {}): Outreach => ({
+    id, name: id, company: null, channel: "email", what: "hello", sent: daysAgo(10),
+    followedUp: null, status: "sent", note: null, ...over,
+  });
+
+  it(`is due on day ${FOLLOWUP_DAYS}, not the day before, and only once`, () => {
+    const xs = [
+      thread("six", { sent: daysAgo(FOLLOWUP_DAYS - 1) }),
+      thread("seven", { sent: daysAgo(FOLLOWUP_DAYS) }),
+      thread("done", { sent: daysAgo(20), followedUp: daysAgo(FOLLOWUP_DAYS) }),   // their move now
+      thread("answered", { status: "replied" }),
+      thread("closed", { status: "no_reply" }),
+    ];
+    expect(followUps(xs, NOW).map((o) => o.id)).toEqual(["seven"]);
+  });
+
+  it("puts the longest wait first, then the name", () => {
+    const xs = [
+      thread("b", { sent: daysAgo(8) }), thread("c", { sent: daysAgo(30) }), thread("a", { sent: daysAgo(8) }),
+    ];
+    expect(followUps(xs, NOW).map((o) => o.id)).toEqual(["c", "a", "b"]);
+  });
+
+  it("is empty on an empty log and does not mutate its input", () => {
+    expect(followUps([], NOW)).toEqual([]);
+    const xs = [thread("z", { sent: daysAgo(8) }), thread("y", { sent: daysAgo(9) })];
+    const before = xs.map((o) => o.id);
+    followUps(xs, NOW);
+    expect(xs.map((o) => o.id)).toEqual(before);
   });
 });
 

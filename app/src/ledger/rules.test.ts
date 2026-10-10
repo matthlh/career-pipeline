@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { today } from "../rules";
+import { FOLLOWUP_DAYS, STALE_DAYS, today } from "../rules";
 import {
-  QUIET_DAYS, STATUS_LABEL, STATUS_ORDER, closingSoon, companyView, deadlineOf, fmtDeadline,
-  groupApplications, isQuiet, nextStep, personFollowUp,
+  OUTREACH_LABEL, OUTREACH_STATUSES, QUIET_DAYS, STATUS_LABEL, STATUS_ORDER, closingSoon, companyView,
+  deadlineOf, fmtDeadline, followUpDue, groupApplications, isQuiet, lastTouch, nextStep, outreachAction,
+  personFollowUp,
 } from "./rules";
-import type { AppStatus, Application, Company, Ledger, LedgerPerson, OpenSource } from "./types";
+import type { AppStatus, Application, Company, Ledger, LedgerPerson, OpenSource, Outreach } from "./types";
 
 // Sunday 4 Oct 2026, 9pm local: already Monday in UTC, which is the point.
 const NOW = new Date(2026, 9, 4, 21, 0);
@@ -191,6 +192,56 @@ describe("personFollowUp", () => {
   });
 });
 
+describe("outreach", () => {
+  const thread = (over: Partial<Outreach> = {}): Outreach => ({
+    id: "out-1", name: "Ada", company: "Acme", channel: "email", what: "your eval harness",
+    sent: daysAgo(3), followedUp: null, status: "sent", note: null, ...over,
+  });
+
+  it("lists every status once, with a label", () => {
+    expect(OUTREACH_STATUSES).toEqual(["sent", "replied", "no_reply"]);
+    for (const s of OUTREACH_STATUSES) expect(OUTREACH_LABEL[s]).toBeTruthy();
+  });
+
+  it("the last touch is the follow-up when there was one", () => {
+    expect(lastTouch(thread())).toBe(daysAgo(3));
+    expect(lastTouch(thread({ followedUp: daysAgo(1) }))).toBe(daysAgo(1));
+  });
+
+  it(`puts the follow-up ${FOLLOWUP_DAYS} days after the message, as a local day`, () => {
+    expect(followUpDue(thread({ sent: "2026-09-28" }))).toBe("2026-10-05");
+    expect(followUpDue(thread({ sent: "2026-12-29" }))).toBe("2027-01-05");
+  });
+
+  it("has no due day once the follow-up went, once they answered, once it is closed, or without a real date", () => {
+    expect(followUpDue(thread({ followedUp: daysAgo(0) }))).toBeNull();
+    expect(followUpDue(thread({ status: "replied" }))).toBeNull();
+    expect(followUpDue(thread({ status: "no_reply" }))).toBeNull();
+    expect(followUpDue(thread({ sent: "last Tuesday" }))).toBeNull();
+  });
+
+  it("is nextAction: wait until day 7, then one follow-up, then it is their move, then mark it dead", () => {
+    expect(outreachAction(thread({ sent: daysAgo(FOLLOWUP_DAYS - 1) }), NOW).kind).toBe("wait");
+    const due = outreachAction(thread({ sent: daysAgo(FOLLOWUP_DAYS) }), NOW);
+    expect(due).toMatchObject({ kind: "followup", tmpl: "4" });
+    // Followed up yesterday: nothing to send, their move.
+    const theirs = outreachAction(thread({ sent: daysAgo(10), followedUp: daysAgo(1) }), NOW);
+    expect(theirs.kind).toBe("wait");
+    expect(theirs.why).toMatch(/their move/);
+    // Followed up a week ago: two unanswered touches.
+    const gone = outreachAction(thread({ sent: daysAgo(20), followedUp: daysAgo(FOLLOWUP_DAYS) }), NOW);
+    expect(gone).toMatchObject({ kind: "none", dead: true });
+    // Follow-up counts from the follow-up, not the first message.
+    expect(outreachAction(thread({ sent: daysAgo(40), followedUp: daysAgo(2) }), NOW).kind).toBe("wait");
+  });
+
+  it("a reply is theirs to be answered, and goes stale like any other", () => {
+    expect(outreachAction(thread({ status: "replied" }), NOW).kind).toBe("reply");
+    expect(outreachAction(thread({ status: "replied", sent: daysAgo(STALE_DAYS) }), NOW)).toMatchObject({ kind: "reply", stale: true });
+    expect(outreachAction(thread({ status: "no_reply", sent: daysAgo(1) }), NOW).kind).toBe("none");
+  });
+});
+
 describe("companyView", () => {
   const acme: Company = { id: "acme-ai", name: "Acme AI", domain: null, why: null, star: true, note: null };
   const os = (id: string, company: string | null): OpenSource => ({
@@ -203,6 +254,7 @@ describe("companyView", () => {
     ],
     people: [person({ company: "Acme  AI" }), person({ id: "x", company: null }), person({ id: "y", company: "Beta" })],
     companies: [acme],
+    outreach: [],
     opensource: [os("o1", "acme-ai"), os("o2", "Acme AI"), os("o3", null), os("o4", "beta")],
     learning: [],
   };

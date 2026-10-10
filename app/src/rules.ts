@@ -135,7 +135,7 @@ export function weakSendDay(now: Date = new Date()): string | null {
    component.
    ---------------------------------------------------------------------- */
 
-export function nextAction(p: Person, st: PersonState | undefined, now: Date = new Date()): Action {
+export function nextAction(p: Pick<Person, "applyUrl">, st: PersonState | undefined, now: Date = new Date()): Action {
   const s: Status = st?.status ?? "not contacted";
   const d = daysSince(st?.last, now);
 

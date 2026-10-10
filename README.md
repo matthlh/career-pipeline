@@ -99,6 +99,11 @@ tag, so `file://` still works.
   one nudge each) and passed deadlines sit in their own collapsed lanes. Below
   that, one row per application; tap a row for the controls and history. On a
   laptop the tiles and the to-do list sit beside the list.
+- **Outreach** — the log of messages that actually went, one row per thread:
+  who, where, email or LinkedIn, the subject, the day it went, and the day the
+  one follow-up falls due. Mark it followed up, replied, or no reply in one
+  tap. The clock is the same `nextAction` rule the queue ran on: day 7, once,
+  then it is their move. Follow-ups due show up in *Do next* too.
 - **Learning** — what the postings keep asking for, in four lanes.
 - **Templates** — a decision tree over seven messages. Three of its paths refuse
   to give you a template, which is the point.
