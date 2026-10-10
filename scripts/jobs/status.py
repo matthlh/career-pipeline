@@ -28,6 +28,8 @@ def run():
     companies = store.read(store.COMPANIES)
     contacts = store.read(store.CONTACTS)
     outreach = store.read(store.OUTREACH)
+    applications = store.read(store.APPLICATIONS)
+    astates = Counter(a.get("status") or "applied" for a in applications)
 
     cstates = Counter(c.get("state", "?") for c in companies)
     kstates = Counter(c.get("state", "?") for c in contacts)
@@ -62,6 +64,9 @@ def run():
         "**Outreach** sent %d | awaiting reply %d | replied %d | bounced %d (%.1f%%)" % (
             len(sent), kstates.get("awaiting_reply", 0), kstates.get("replied", 0),
             len(bounced), bounce_rate),
+        "**Applications** %d submitted | interview %d | offer %d | rejected %d" % (
+            len(applications), astates.get("interview", 0), astates.get("offer", 0),
+            astates.get("rejected", 0)),
         "",
         "**Backlog** enrich %d | resolve %d" % (
             cstates.get("new", 0) + len(store.stale_companies()),

@@ -16,6 +16,16 @@ COMPANIES = os.path.join(DATA, "companies.jsonl")
 CONTACTS = os.path.join(DATA, "contacts.jsonl")
 OUTREACH = os.path.join(DATA, "outreach.jsonl")
 APPLICATIONS = os.path.join(DATA, "applications.jsonl")
+# Postings he means to apply to on an employer's own site, which nothing here can
+# submit. `mark-app <id> applied` moves one into APPLICATIONS.
+OPEN_POSTINGS = os.path.join(DATA, "open_postings.jsonl")
+# The ledger (app/src/ledger/types.ts is the contract). Everything added or
+# changed in the app that has no older home: people and company overlays, open
+# source, learning. One {"kind", "id", ...fields} object per line.
+LEDGER = os.path.join(DATA, "ledger.jsonl")
+# Edit ids from app/public/ledger-edits.json already folded into the files.
+LEDGER_IMPORTED = os.path.join(ROOT, "state", "ledger_imported.json")
+LEDGER_EDITS = os.path.join(ROOT, "app", "public", "ledger-edits.json")
 
 ENRICH_TTL_DAYS = 60
 

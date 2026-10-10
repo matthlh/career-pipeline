@@ -1,3 +1,4 @@
+import type { EditsFile } from "./ledger/types";
 import type { Seed } from "./types";
 
 /* Point the published page at the folder the pipeline writes into.
@@ -16,11 +17,12 @@ import type { Seed } from "./types";
    permission methods on a handle are still Chromium-only additions. Declared
    narrowly rather than pulled in as a dependency. */
 type FsPermission = "granted" | "denied" | "prompt";
-interface FsPermissionOpts { mode: "read" | "readwrite" }
+export type FsMode = "read" | "readwrite";
+interface FsPermissionOpts { mode: FsMode }
 
 declare global {
   interface Window {
-    showDirectoryPicker(opts?: { id?: string; mode?: "read" | "readwrite" }):
+    showDirectoryPicker(opts?: { id?: string; mode?: FsMode }):
       Promise<FileSystemDirectoryHandle>;
   }
   interface FileSystemDirectoryHandle {
@@ -82,9 +84,15 @@ export async function choose(): Promise<FileSystemDirectoryHandle> {
 export type Access = "granted" | "needs-click" | "denied";
 
 /** `prompt` is not a failure: it means the browser will grant on a gesture, so
- *  the UI shows a button rather than an error. */
-export async function access(h: FileSystemDirectoryHandle, ask: boolean): Promise<Access> {
-  const opts = { mode: "read" } as const;
+ *  the UI shows a button rather than an error.
+ *
+ *  The folder is granted "read" when it is connected. "readwrite" is a separate,
+ *  larger grant (the ledger writes its edit log back), so it is asked for on its
+ *  own and a read grant never implies it. */
+export async function access(
+  h: FileSystemDirectoryHandle, ask: boolean, mode: FsMode = "read",
+): Promise<Access> {
+  const opts: FsPermissionOpts = { mode };
   let state = await h.queryPermission(opts);
   if (state === "prompt" && ask) state = await h.requestPermission(opts);
   return state === "granted" ? "granted" : state === "prompt" ? "needs-click" : "denied";
@@ -107,4 +115,22 @@ export function parseSeed(text: string): Seed {
 export async function readSeed(h: FileSystemDirectoryHandle): Promise<Seed> {
   const file = await h.getFileHandle("data.js");
   return parseSeed(await (await file.getFile()).text());
+}
+
+export const EDITS_FILE = "ledger-edits.json";
+
+/** The ledger's whole local edit log, as ledger-import reads it. Needs
+ *  "readwrite" already granted - this never asks. createWritable writes to a
+ *  swap file and only replaces the real one on close, so a failed write leaves
+ *  the previous log intact rather than half a file. */
+export async function writeEdits(h: FileSystemDirectoryHandle, file: EditsFile): Promise<void> {
+  const fh = await h.getFileHandle(EDITS_FILE, { create: true });
+  const out = await fh.createWritable();
+  try {
+    await out.write(JSON.stringify(file, null, 2) + "\n");
+  } catch (e) {
+    await out.abort().catch(() => undefined);
+    throw e;
+  }
+  await out.close();
 }

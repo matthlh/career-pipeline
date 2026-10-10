@@ -1,0 +1,34 @@
+/* Learning view. Tokens from style.css only; shared pieces live in ledger.css. */
+
+.le-toggle{display:inline-flex;align-items:center;gap:8px;min-height:36px;font-size:14px;
+  color:var(--dim);cursor:pointer;user-select:none}
+.le-toggle input{width:18px;height:18px;margin:0;accent-color:var(--go)}
+
+.le-summary{margin:-6px 0 12px}
+
+/* Lanes sit side by side when there is room and stack on a phone. min() keeps
+   a single column from forcing horizontal scroll on a 360px screen. */
+.le-lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));
+  gap:0 16px;align-items:start;margin-top:14px}
+.le-lanes > .lg-section{min-width:0}
+.le-lane-empty{margin:0 0 8px;padding:10px 2px}
+
+.le-card{display:flex;flex-direction:column;gap:6px;min-width:0}
+.le-learning{border-color:var(--go)}
+.le-done,.le-dropped{opacity:.8}
+.le-dropped .le-topic{text-decoration:line-through;text-decoration-color:var(--dim)}
+
+.le-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:2px 10px}
+.le-topic{font-size:15px;overflow-wrap:anywhere}
+.le-added{white-space:nowrap}
+
+.le-why .lg-inline,.le-note .lg-inline{min-height:28px}
+.le-link{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-size:13px;min-width:0}
+.le-link .lg-inline{color:var(--dim);overflow-wrap:anywhere;word-break:break-word;min-width:0}
+.le-open{color:var(--p2);font-weight:600;padding:6px 0;text-decoration:none}
+.le-open:hover{text-decoration:underline}
+.le-note{font-size:14px}
+.le-card .lg-input{width:100%}
+
+.le-actions{margin-top:4px}
+.le-remove{margin-left:auto;color:var(--red)}

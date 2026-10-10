@@ -3,9 +3,13 @@ the order drafts get written in. They are supposed to agree, and for a while
 they did not: the queue sorted on funding stage and the exporter ignored it, so
 the top card and the top draft were different people.
 """
+import contextlib
+import json
 import os
+import re
 import subprocess
 import sys
+import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -13,6 +17,7 @@ sys.path.insert(0, os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "jobs"))
 import export_app  # noqa: E402
 import prefs  # noqa: E402
+import store  # noqa: E402
 
 
 def person(**kw):
@@ -137,8 +142,39 @@ class ApplyUrl(unittest.TestCase):
         self.assertIsNone(export_app._apply_url(None))
 
 
-if __name__ == "__main__":
-    unittest.main()
+class EmailLessContacts(unittest.TestCase):
+    """resolve-contacts records a failed lookup as a contact row with no email,
+    so the retry window has a timestamp to move. Those are attempts, not people:
+    the exporter keys every row on the address, and one of them took export-app
+    down with an AttributeError rather than skipping the row.
+    """
+
+    def test_a_row_with_no_email_is_not_a_person(self):
+        contacts = [{"domain": "a.example", "email": "real@a.example"},
+                    {"domain": "b.example", "email": None, "state": "resolved_none"}]
+        kept = [c for c in contacts if c.get("email")]
+        self.assertEqual([c["domain"] for c in kept], ["a.example"])
+
+    def test_the_exporter_drops_them_rather_than_raising(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            os.makedirs(os.path.join(tmp, "data"))
+            rows = {"companies.jsonl": [{"domain": "b.example", "name": "B"}],
+                    "research.jsonl": [],
+                    "contacts.jsonl": [{"domain": "b.example", "email": None,
+                                        "state": "resolved_none"}]}
+            for name, records in rows.items():
+                with open(os.path.join(tmp, "data", name), "w", encoding="utf-8") as fh:
+                    for r in records:
+                        fh.write(json.dumps(r) + "\n")
+            real = export_app.ROOT
+            try:
+                export_app.ROOT = tmp
+                kept = [c for c in export_app._read("contacts.jsonl") if c.get("email")]
+                people = [export_app.person(c, {}, {}) for c in kept]
+            finally:
+                export_app.ROOT = real
+        self.assertEqual(people, [])
 
 
 class ExampleData(unittest.TestCase):
@@ -206,3 +242,227 @@ class ExampleData(unittest.TestCase):
     def test_no_person_carries_a_real_address(self):
         for p in self._example()["people"]:
             self.assertTrue(p["email"].endswith(".example"), p["email"])
+
+    def test_ledger_emails_are_all_on_the_example_tld(self):
+        # The published copy runs on this file, so one real address in the
+        # ledger half is a leak exactly like one in the people half.
+        ledger = self._example()["ledger"]
+        emails = [p["email"] for p in ledger["people"] if p["email"]]
+        self.assertTrue(emails)
+        for e in emails:
+            self.assertTrue(e.endswith(".example"), e)
+        for e in re.findall(r"[\w.+-]+@[\w.-]+\.[a-z]{2,}", json.dumps(ledger)):
+            self.assertTrue(e.endswith(".example"), e)
+
+    def test_ledger_carries_exactly_the_fields_the_exporter_emits(self):
+        ledger = self._example()["ledger"]
+        self.assertEqual(set(ledger), LEDGER_KEYS)
+        shapes = {
+            "applications": set(export_app.application({})),
+            "people": set(export_app.ledger_person({}, {})),
+            "companies": {"id", "name"} | set(export_app.COMPANY_DEFAULTS),
+            "opensource": {"id"} | set(export_app.OSS_DEFAULTS),
+            "learning": {"id"} | set(export_app.LEARN_DEFAULTS),
+        }
+        for key, fields in shapes.items():
+            self.assertTrue(ledger[key], key)
+            for item in ledger[key]:
+                self.assertEqual(set(item), fields, "%s %s" % (key, item.get("id")))
+
+    def test_ledger_shows_every_application_status(self):
+        statuses = set(a["status"] for a in self._example()["ledger"]["applications"])
+        self.assertEqual(statuses, {"saved", "applied", "interview", "offer", "rejected",
+                                    "withdrawn", "closed"})
+
+
+LEDGER_KEYS = {"applications", "people", "companies", "opensource", "learning",
+               "appliedEdits"}
+
+STORE_PATHS = {"APPLICATIONS": "data/applications.jsonl",
+               "OPEN_POSTINGS": "data/open_postings.jsonl",
+               "CONTACTS": "data/contacts.jsonl", "COMPANIES": "data/companies.jsonl",
+               "LEDGER": "data/ledger.jsonl", "LEDGER_IMPORTED": "state/ledger_imported.json"}
+
+
+@contextlib.contextmanager
+def isolated_store(files=None):
+    """Point store's paths, and the exporter's root and output, at a temp dir.
+    `files` maps a STORE_PATHS name to a list of rows, or to a dict for the
+    one JSON (not jsonl) file."""
+    saved = dict((k, getattr(store, k)) for k in STORE_PATHS)
+    root, out = export_app.ROOT, export_app.OUT
+    with tempfile.TemporaryDirectory() as tmp:
+        os.makedirs(os.path.join(tmp, "data"))
+        os.makedirs(os.path.join(tmp, "state"))
+        try:
+            for k, rel in STORE_PATHS.items():
+                setattr(store, k, os.path.join(tmp, rel))
+            export_app.ROOT, export_app.OUT = tmp, os.path.join(tmp, "data.js")
+            for k, rows in (files or {}).items():
+                with open(getattr(store, k), "w", encoding="utf-8") as fh:
+                    if isinstance(rows, dict):
+                        json.dump(rows, fh)
+                    else:
+                        for r in rows:
+                            fh.write(json.dumps(r) + "\n")
+            yield tmp
+        finally:
+            for k, v in saved.items():
+                setattr(store, k, v)
+            export_app.ROOT, export_app.OUT = root, out
+
+
+def build(applied=(), postings=(), contacts=(), companies=(), rows=(), edits=()):
+    return export_app.build_ledger(list(applied), list(postings), list(contacts),
+                                   list(companies), list(rows), list(edits))
+
+
+class LedgerSeed(unittest.TestCase):
+    """SEED.ledger, against the contract in app/src/ledger/types.ts. The app
+    reads these field names verbatim, so a key that drifts here does not crash
+    anything - a column just goes blank."""
+
+    def test_an_empty_store_still_has_all_six_keys(self):
+        with isolated_store():
+            ledger = export_app.load_ledger()
+        self.assertEqual(set(ledger), LEDGER_KEYS)
+        self.assertTrue(all(v == [] for v in ledger.values()))
+
+    def test_data_js_carries_the_ledger_beside_everything_it_had(self):
+        with isolated_store({"APPLICATIONS": [{"job_id": "1", "company": "Acme",
+                                               "title": "W27 Intern",
+                                               "submitted_at": "2026-10-01T18:00:00Z"}],
+                             "LEDGER_IMPORTED": {"applied": ["e-1-abcd"]}}):
+            with open(os.devnull, "w") as null, contextlib.redirect_stdout(null):
+                export_app.run()
+            with open(export_app.OUT, encoding="utf-8") as fh:
+                src = fh.read()
+        seed = json.loads(src[src.index("window.SEED = ") + 14:].rstrip()[:-1])
+        for key in ("generated", "from", "counts", "people", "ledger"):
+            self.assertIn(key, seed)
+        self.assertEqual(set(seed["ledger"]), LEDGER_KEYS)
+        self.assertEqual([a["id"] for a in seed["ledger"]["applications"]], ["1"])
+        self.assertEqual(seed["ledger"]["appliedEdits"], ["e-1-abcd"])
+
+    def test_submitted_is_applied_and_a_posting_is_saved(self):
+        ledger = build(
+            applied=[{"job_id": 184771, "company": "Acme", "title": "W27 Software Intern",
+                      "via": "SCOPE", "deadline": "2026-10-05 09:00 PT",
+                      "submitted_at": "2026-10-01T05:30:00Z"}],
+            postings=[{"job_id": "184593", "company": "Globex", "title": "SWE Intern",
+                       "term": "S27", "deadline": "2026-10-20", "link": "https://x.example/j",
+                       "where": None, "status": "open", "hold": "referral"},
+                      {"job_id": "g-2", "company": "Globex", "title": "Data Intern"}])
+        applied, saved, unstated = ledger["applications"]
+        self.assertEqual(applied["id"], "184771")
+        self.assertEqual(applied["status"], "applied")
+        self.assertEqual(applied["term"], "W27")
+        # 05:30 UTC on the 1st is still the evening of the 30th in Vancouver.
+        self.assertEqual(applied["submitted"], "2026-09-30")
+        self.assertEqual((applied["referral"], applied["events"]), ("none", []))
+        self.assertEqual((saved["status"], saved["submitted"]), ("saved", None))
+        self.assertEqual((saved["term"], saved["deadline"]), ("S27", "2026-10-20"))
+        self.assertEqual((saved["referral"], saved["hold"]), ("want", "referral"))
+        self.assertEqual(unstated["status"], "saved")
+        self.assertEqual((unstated["term"], unstated["via"], unstated["note"]),
+                         (None, None, None))
+
+    def test_applied_and_skipped_postings_are_left_out(self):
+        ledger = build(postings=[
+            {"job_id": "a", "company": "Acme", "title": "x", "status": "applied"},
+            {"job_id": "b", "company": "Acme", "title": "x", "status": "skipped"},
+            {"job_id": "c", "company": "Acme", "title": "x", "status": "open"}])
+        self.assertEqual([a["id"] for a in ledger["applications"]], ["c"])
+
+    def test_a_shared_id_keeps_the_application_and_borrows_where(self):
+        # Planview: the SCOPE half went in, the careers-portal half is still open.
+        ledger = build(
+            applied=[{"job_id": "184830", "company": "Planview", "title": "W27 Co-op",
+                      "via": "SCOPE", "submitted_at": "2026-10-01T11:50:10Z"},
+                     {"job_id": "184831", "company": "Planview", "title": "W27 Co-op",
+                      "where": "already here", "submitted_at": "2026-10-01T11:50:10Z"}],
+            postings=[{"job_id": "184830", "company": "Planview", "title": "Co-op",
+                       "where": "careers.planview.example, job 5151",
+                       "link": "https://x.example/5151", "status": "open"},
+                      {"job_id": "184831", "company": "Planview", "title": "Co-op",
+                       "where": "somewhere else", "status": "open"}])
+        apps = ledger["applications"]
+        self.assertEqual([a["id"] for a in apps], ["184830", "184831"])
+        self.assertEqual(apps[0]["status"], "applied")
+        self.assertEqual(apps[0]["where"], "careers.planview.example, job 5151")
+        self.assertEqual(apps[0]["link"], "https://x.example/5151")
+        self.assertEqual(apps[1]["where"], "already here", "borrows only into an empty field")
+
+    def test_company_id_mirrors_the_typescript(self):
+        self.assertEqual(export_app.company_id("Fidelity Canada"), "fidelity-canada")
+        self.assertEqual(
+            export_app.company_id("NRC - National Research Council Canada (ACRD)"),
+            "nrc-national-research-council-canada-acrd")
+        self.assertEqual(export_app.company_id("  --Acme, Inc.--  "), "acme-inc")
+
+    def test_a_contact_becomes_a_person(self):
+        companies = [{"domain": "np.example", "name": "NP Co", "what_they_build": "Widgets.",
+                      "sources": [{"source": "next_play"}]}]
+        ledger = build(companies=companies, contacts=[
+            {"domain": "np.example", "company_name": "NP Co", "email": "Jobs@NP.example",
+             "method": "hn_posting", "state": "awaiting_reply",
+             "sent_at": "2026-10-01T00:22:41Z", "queued_at": "2026-10-03T00:00:00Z"},
+            {"domain": "li.example", "company_name": "Li Co", "email": None, "name": "Dana O",
+             "method": "manual_add", "state": "queued",
+             "linkedin": "https://www.linkedin.com/in/dana-o-example/"},
+            {"domain": "gone.example", "email": None, "state": "resolved_none",
+             "method": "research"},
+            {"domain": "odd.example", "email": "x@odd.example", "state": "weird",
+             "method": "github_commits"}])
+        np_, li, odd = ledger["people"]
+        self.assertEqual(np_["id"], "jobs@np.example")
+        self.assertEqual(np_["how"], "Next Play newsletter")
+        self.assertEqual(np_["last"], "2026-09-30", "sent, not queued, and in Pacific time")
+        self.assertEqual(li["id"], "p-dana-o-li-co")
+        self.assertEqual(li["linkedin"], "https://www.linkedin.com/in/dana-o-example/")
+        self.assertEqual((li["how"], li["state"], li["last"]), ("manual add", "queued", None))
+        self.assertEqual((odd["state"], odd["how"], odd["company"]),
+                         ("new", "GitHub commits", "odd.example"))
+        self.assertEqual([c["id"] for c in ledger["companies"]], ["np-co", "li-co", "odd-example"])
+        self.assertEqual(ledger["companies"][0]["why"], "Widgets.")
+
+    def test_ledger_rows_overlay_add_and_tombstone(self):
+        contacts = [{"domain": "acme.example", "company_name": "Acme", "state": "new",
+                     "email": "a@acme.example", "name": "Ana", "method": "github_commits"},
+                    {"domain": "acme.example", "company_name": "Acme", "state": "new",
+                     "email": "b@acme.example", "name": "Ben", "method": "github_commits"}]
+        rows = [
+            {"kind": "person", "id": "a@acme.example", "state": "met", "canRefer": True},
+            {"kind": "person", "id": "p-jo-lee-initech", "name": "Jo Lee",
+             "company": "Initech", "how": "classmate", "state": "friend"},
+            # The pipeline still has Ben; the tombstone wins anyway.
+            {"kind": "person", "id": "b@acme.example", "deleted": True},
+            {"kind": "company", "id": "acme", "star": True, "note": "top pick"},
+            {"kind": "company", "id": "globex", "deleted": True},
+            {"kind": "company", "id": "hooli", "name": "Hooli"},
+            {"kind": "opensource", "id": "oss-1", "project": "vitest", "status": "working"},
+            {"kind": "opensource", "id": "oss-2", "project": "dropped one"},
+            {"kind": "opensource", "id": "oss-2", "deleted": True},
+            {"kind": "learning", "id": "learn-1", "topic": "Kubernetes basics"},
+        ]
+        ledger = build(contacts=contacts, rows=rows,
+                       applied=[{"job_id": "9", "company": "Globex", "title": "Intern"}])
+        people = dict((p["id"], p) for p in ledger["people"])
+        self.assertEqual(list(people), ["a@acme.example", "p-jo-lee-initech"])
+        self.assertEqual((people["a@acme.example"]["state"],
+                          people["a@acme.example"]["canRefer"],
+                          people["a@acme.example"]["email"]), ("met", True, "a@acme.example"))
+        self.assertEqual(set(people["p-jo-lee-initech"]),
+                         set(export_app.ledger_person({}, {})), "an added person gets every field")
+        companies = dict((c["id"], c) for c in ledger["companies"])
+        self.assertEqual(sorted(companies), ["acme", "hooli", "initech"])
+        self.assertEqual((companies["acme"]["star"], companies["acme"]["note"]),
+                         (True, "top pick"))
+        self.assertEqual([o["id"] for o in ledger["opensource"]], ["oss-1"])
+        self.assertEqual(ledger["opensource"][0]["status"], "working")
+        self.assertEqual(ledger["learning"][0]["status"], "todo")
+        self.assertEqual(set(ledger["learning"][0]), {"id"} | set(export_app.LEARN_DEFAULTS))
+
+
+if __name__ == "__main__":
+    unittest.main()

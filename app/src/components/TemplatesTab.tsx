@@ -31,8 +31,8 @@ export function TemplatesTab() {
             <MsgMeter msg={msg} />
             <CopyBtn text={msg.text} />
             <p className="sm dim" style={{ marginTop: 9, marginBottom: 0 }}>
-              Blank template. Use the Today tab instead when you want it filled in with a real
-              person's name and fact.
+              Blank template. Fill in the name and one real fact about the person, from their
+              card in the People tab.
             </p>
           </div>
         ) : null}

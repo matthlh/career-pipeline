@@ -11,6 +11,10 @@
  * `demo` is progress, stored as day offsets rather than dates so a published
  * copy does not age into nonsense. app/index.html only applies it when the
  * browser has nothing saved, and never writes over real imported state.
+ *
+ * `ledger` is SEED.ledger (app/src/ledger/types.ts), made by running
+ * export_app.build_ledger over invented rows so it has exactly the shape the
+ * exporter emits. Its dates are absolute, because the contract carries dates.
  */
 window.SEED = window.SEED || {
  "generated": "example",
@@ -497,5 +501,443 @@ window.SEED = window.SEED || {
    4,
    3
   ]
+ },
+ "ledger": {
+  "applications": [
+   {
+    "id": "187210",
+    "company": "Overtone",
+    "title": "W27 Software Developer Co-op (Vancouver hybrid, 8 months)",
+    "status": "applied",
+    "via": "SCOPE",
+    "term": "W27",
+    "deadline": "2026-09-28 09:00 PT",
+    "submitted": "2026-09-26",
+    "link": null,
+    "where": null,
+    "referral": "referred",
+    "referrer": "wei@overtone.example",
+    "hold": null,
+    "note": null,
+    "events": []
+   },
+   {
+    "id": "187155",
+    "company": "Bellwether Labs",
+    "title": "W27 Platform Engineering Co-op (remote Canada, 8 months)",
+    "status": "interview",
+    "via": "SCOPE",
+    "term": "W27",
+    "deadline": "2026-09-21 09:00 PT",
+    "submitted": "2026-09-18",
+    "link": null,
+    "where": null,
+    "referral": "none",
+    "referrer": null,
+    "hold": null,
+    "note": null,
+    "events": [
+     {
+      "at": "2026-09-19T15:40:00Z",
+      "status": "applied",
+      "note": "Confirmation from their applicant tracker."
+     },
+     {
+      "at": "2026-10-01T20:15:00Z",
+      "status": "interview",
+      "note": "Phone screen booked for Oct 9, 30 minutes."
+     }
+    ]
+   },
+   {
+    "id": "stellwater-2026-09-12",
+    "company": "Stellwater",
+    "title": "Software Engineering Intern (New York, Summer 2027)",
+    "status": "offer",
+    "via": "employer site",
+    "term": "S27",
+    "deadline": null,
+    "submitted": "2026-09-12",
+    "link": "https://example.com/apply/stellwater",
+    "where": null,
+    "referral": "none",
+    "referrer": null,
+    "hold": null,
+    "note": null,
+    "events": [
+     {
+      "at": "2026-09-24T18:00:00Z",
+      "status": "interview",
+      "note": "Two rounds and a take-home on tide data."
+     },
+     {
+      "at": "2026-10-02T16:30:00Z",
+      "status": "offer",
+      "note": "Verbal offer, written one to follow."
+     }
+    ]
+   },
+   {
+    "id": "186990",
+    "company": "Quarterturn",
+    "title": "W27 Robotics Software Co-op (Vancouver, 8 months)",
+    "status": "rejected",
+    "via": "SCOPE",
+    "term": "W27",
+    "deadline": "2026-09-14 09:00 PT",
+    "submitted": "2026-09-09",
+    "link": null,
+    "where": null,
+    "referral": "none",
+    "referrer": null,
+    "hold": null,
+    "note": null,
+    "events": [
+     {
+      "at": "2026-09-30T22:10:00Z",
+      "status": "rejected",
+      "note": "Form rejection, no interview."
+     }
+    ]
+   },
+   {
+    "id": "187001",
+    "company": "Windrow",
+    "title": "W27 Data Engineering Co-op (Calgary, 4 months)",
+    "status": "withdrawn",
+    "via": "SCOPE",
+    "term": "W27",
+    "deadline": "2026-09-14 09:00 PT",
+    "submitted": "2026-09-11",
+    "link": null,
+    "where": null,
+    "referral": "none",
+    "referrer": null,
+    "hold": null,
+    "note": null,
+    "events": [
+     {
+      "at": "2026-09-25T17:00:00Z",
+      "status": "withdrawn",
+      "note": "Four-month term; kept the eight-month ones."
+     }
+    ]
+   },
+   {
+    "id": "thornfield-2026-09-08",
+    "company": "Thornfield",
+    "title": "Embedded Rust Intern",
+    "status": "closed",
+    "via": "employer site",
+    "term": null,
+    "deadline": null,
+    "submitted": "2026-09-08",
+    "link": "https://example.com/apply/thornfield",
+    "where": null,
+    "referral": "none",
+    "referrer": null,
+    "hold": null,
+    "note": null,
+    "events": [
+     {
+      "at": "2026-10-01T16:00:00Z",
+      "status": "closed",
+      "note": "Posting taken down, no reply in three weeks."
+     }
+    ]
+   },
+   {
+    "id": "pitchpine-2026-10-01",
+    "company": "Pitchpine",
+    "title": "Full-stack Intern (remote)",
+    "status": "applied",
+    "via": "employer site",
+    "term": null,
+    "deadline": null,
+    "submitted": "2026-10-01",
+    "link": null,
+    "where": "pitchpine.example/careers, role 14",
+    "referral": "none",
+    "referrer": null,
+    "hold": null,
+    "note": "Found in the October hiring thread.",
+    "events": []
+   },
+   {
+    "id": "190412",
+    "company": "Lantern",
+    "title": "Software Engineering Intern, Summer 2027 (remote US)",
+    "status": "saved",
+    "via": null,
+    "term": "S27",
+    "deadline": "2026-10-20 23:59 PT",
+    "submitted": null,
+    "link": "https://example.com/apply/lantern",
+    "where": null,
+    "referral": "asked",
+    "referrer": "dana@lantern.example",
+    "hold": null,
+    "note": "Cover letter optional.",
+    "events": []
+   },
+   {
+    "id": "190433",
+    "company": "Fernbank Systems",
+    "title": "Backend Engineering Intern (Toronto or remote Canada)",
+    "status": "saved",
+    "via": null,
+    "term": "S27",
+    "deadline": "2026-10-31",
+    "submitted": null,
+    "link": "https://example.com/apply/fernbank",
+    "where": null,
+    "referral": "want",
+    "referrer": null,
+    "hold": "referral",
+    "note": "Ask Marcus first; apply by the deadline either way.",
+    "events": []
+   }
+  ],
+  "people": [
+   {
+    "id": "dana@lantern.example",
+    "name": "Dana Okonkwo",
+    "company": "Lantern",
+    "title": "commits to lantern/lantern-core",
+    "email": "dana@lantern.example",
+    "linkedin": null,
+    "how": "GitHub commits",
+    "state": "awaiting_reply",
+    "last": "2026-09-29",
+    "canRefer": false,
+    "note": null
+   },
+   {
+    "id": "wei@overtone.example",
+    "name": "Wei Nakamura",
+    "company": "Overtone",
+    "title": "commits to overtone/overtone-sdk",
+    "email": "wei@overtone.example",
+    "linkedin": null,
+    "how": "GitHub commits",
+    "state": "replied",
+    "last": "2026-09-22",
+    "canRefer": true,
+    "note": "Referred me for the W27 co-op after the call."
+   },
+   {
+    "id": "marcus@fernbank.example",
+    "name": "Marcus Alvi",
+    "company": "Fernbank Systems",
+    "title": "Engineering Manager",
+    "email": "marcus@fernbank.example",
+    "linkedin": "https://www.linkedin.com/in/marcus-alvi-example/",
+    "how": "UBC alum",
+    "state": "met",
+    "last": "2026-09-20",
+    "canRefer": false,
+    "note": "Coffee at the alumni night; said to ping him in October."
+   },
+   {
+    "id": "priya@stellwater.example",
+    "name": "Priya Raghunathan",
+    "company": "Stellwater",
+    "title": "commits to stellwater/tide",
+    "email": "priya@stellwater.example",
+    "linkedin": null,
+    "how": "GitHub commits",
+    "state": "queued",
+    "last": null,
+    "canRefer": false,
+    "note": null
+   },
+   {
+    "id": "founders@driftwood.example",
+    "name": null,
+    "company": "Driftwood",
+    "title": "from job posting",
+    "email": "founders@driftwood.example",
+    "linkedin": null,
+    "how": "Next Play newsletter",
+    "state": "new",
+    "last": null,
+    "canRefer": false,
+    "note": null
+   },
+   {
+    "id": "p-jordan-reyes-corvidae",
+    "name": "Jordan Reyes",
+    "company": "Corvidae",
+    "title": "Software Engineering Intern",
+    "email": null,
+    "linkedin": null,
+    "how": "classmate",
+    "state": "friend",
+    "last": "2026-09-27",
+    "canRefer": false,
+    "note": "Interned there last summer and knows the hiring manager."
+   }
+  ],
+  "companies": [
+   {
+    "id": "overtone",
+    "name": "Overtone",
+    "domain": "overtone.example",
+    "why": "Semantic search you drop into an existing product in an afternoon.",
+    "star": true,
+    "note": null
+   },
+   {
+    "id": "bellwether-labs",
+    "name": "Bellwether Labs",
+    "domain": "bellwether.example",
+    "why": "Load testing that replays real production traffic shapes.",
+    "star": false,
+    "note": null
+   },
+   {
+    "id": "stellwater",
+    "name": "Stellwater",
+    "domain": "stellwater.example",
+    "why": "Forecasting for coastal infrastructure operators.",
+    "star": false,
+    "note": null
+   },
+   {
+    "id": "quarterturn",
+    "name": "Quarterturn",
+    "domain": "quarterturn.example",
+    "why": "Warehouse robotics fleet coordination.",
+    "star": false,
+    "note": null
+   },
+   {
+    "id": "windrow",
+    "name": "Windrow",
+    "domain": "windrow.example",
+    "why": "Grid-scale battery dispatch optimisation.",
+    "star": false,
+    "note": null
+   },
+   {
+    "id": "thornfield",
+    "name": "Thornfield",
+    "domain": "thornfield.example",
+    "why": "Developer tooling for embedded Rust.",
+    "star": false,
+    "note": null
+   },
+   {
+    "id": "pitchpine",
+    "name": "Pitchpine",
+    "domain": "pitchpine.example",
+    "why": "Scheduling and payroll for seasonal agricultural crews.",
+    "star": false,
+    "note": null
+   },
+   {
+    "id": "lantern",
+    "name": "Lantern",
+    "domain": "lantern.example",
+    "why": "Incident timelines assembled from logs, traces and chat in one view.",
+    "star": true,
+    "note": "Top pick: the stack is the eval work I already do."
+   },
+   {
+    "id": "fernbank-systems",
+    "name": "Fernbank Systems",
+    "domain": "fernbank.example",
+    "why": "Double-entry ledger infrastructure for fintechs.",
+    "star": false,
+    "note": null
+   },
+   {
+    "id": "driftwood",
+    "name": "Driftwood",
+    "domain": "driftwood.example",
+    "why": "Marketplace for surplus construction material.",
+    "star": false,
+    "note": null
+   },
+   {
+    "id": "corvidae",
+    "name": "Corvidae",
+    "domain": "corvidae.example",
+    "why": "Bird-strike risk modelling for regional airports.",
+    "star": false,
+    "note": null
+   }
+  ],
+  "opensource": [
+   {
+    "id": "oss-mubm0v40",
+    "project": "lantern-core",
+    "repo": "https://example.com/oss/lantern-core",
+    "link": "https://example.com/oss/lantern-core/pull/431",
+    "status": "pr open",
+    "company": "lantern",
+    "note": "Fix for trace merge ordering under clock skew.",
+    "added": "2026-09-21"
+   },
+   {
+    "id": "oss-mtt1asg0",
+    "project": "overtone-sdk",
+    "repo": "https://example.com/oss/overtone-sdk",
+    "link": "https://example.com/oss/overtone-sdk/pull/88",
+    "status": "merged",
+    "company": "overtone",
+    "note": "Retry budget for the embeddings client.",
+    "added": "2026-09-08"
+   },
+   {
+    "id": "oss-murbv8g0",
+    "project": "tide",
+    "repo": "https://example.com/oss/tide",
+    "link": null,
+    "status": "exploring",
+    "company": "stellwater",
+    "note": "Read the backfill code; look for a first issue.",
+    "added": "2026-10-02"
+   }
+  ],
+  "learning": [
+   {
+    "id": "learn-mufwcf40",
+    "topic": "Kubernetes basics",
+    "why": "Bellwether Labs and Windrow both list it.",
+    "link": "https://example.com/learn/kubernetes",
+    "status": "learning",
+    "note": null,
+    "added": "2026-09-24"
+   },
+   {
+    "id": "learn-mu31dr40",
+    "topic": "Retrieval evaluation (recall@k, MRR)",
+    "why": "Overtone's posting asks for eval experience.",
+    "link": null,
+    "status": "done",
+    "note": "Wrote it up in the eval harness README.",
+    "added": "2026-09-15"
+   },
+   {
+    "id": "learn-mupwfds0",
+    "topic": "C# and .NET",
+    "why": "Two W27 co-op postings ask for it.",
+    "link": null,
+    "status": "todo",
+    "note": null,
+    "added": "2026-10-01"
+   },
+   {
+    "id": "learn-mtugqn40",
+    "topic": "Embedded Rust",
+    "why": "Thornfield.",
+    "link": null,
+    "status": "dropped",
+    "note": "Posting closed; not worth it without a role.",
+    "added": "2026-09-09"
+   }
+  ],
+  "appliedEdits": []
  }
 };

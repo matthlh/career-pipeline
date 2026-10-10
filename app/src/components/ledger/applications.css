@@ -1,0 +1,166 @@
+/* Applications view. Tokens from style.css only; every class starts with ap-.
+
+   One column on a phone: tiles, Do next, then the list. From 1000px the tiles
+   and Do next become a sticky side panel and the list takes the rest, so the
+   two halves of "what do I do" and "where does it stand" are both on screen. */
+
+.ap{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+.ap-side{min-width:0}
+.ap-main{min-width:0}
+
+/* --- tiles ------------------------------------------------------------- */
+.ap-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 18px}
+.ap-tile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:60px;
+  padding:9px 11px;border-radius:14px;border:1px solid var(--line);background:var(--card);
+  text-align:left;font-weight:500;box-shadow:0 1px 2px var(--shadow)}
+.ap-tile-n{font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
+.ap-tile-l{font-size:11.5px;line-height:1.2;color:var(--dim);font-weight:600}
+.ap-tile-interview .ap-tile-n,.ap-tile-offer .ap-tile-n{color:var(--go)}
+.ap-tile-applied .ap-tile-n{color:var(--p2)}
+.ap-tile-saved .ap-tile-n{color:var(--warn)}
+.ap-tile-held .ap-tile-n,.ap-tile-closed .ap-tile-n{color:var(--dim)}
+.ap-tile:hover{border-color:var(--ink)}
+.ap-tile.on{background:var(--ink);border-color:transparent}
+.ap-tile.on .ap-tile-n,.ap-tile.on .ap-tile-l{color:var(--bg-a)}
+.ap-tile:focus-visible{outline:2px solid var(--p2);outline-offset:2px}
+
+.ap-focus{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px}
+
+/* --- do next ----------------------------------------------------------- */
+.ap-todo-sec{margin-bottom:22px}
+.ap-todo{list-style:none;margin:0;padding:0;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;overflow:hidden;box-shadow:0 1px 2px var(--shadow)}
+.ap-todo-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;
+  grid-template-areas:"kind body when" "kind acts acts";gap:4px 10px;padding:10px 12px;
+  border-top:1px solid var(--line);overflow-wrap:anywhere}
+.ap-todo-row:first-child{border-top:0}
+.ap-todo-kind{grid-area:kind;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;
+  padding-top:4px;min-width:60px;color:var(--dim)}
+.ap-todo-apply .ap-todo-kind,.ap-todo-rolling .ap-todo-kind{color:var(--warn)}
+.ap-todo-referral .ap-todo-kind{color:var(--p2)}
+.ap-todo-interview .ap-todo-kind,.ap-todo-offer .ap-todo-kind{color:var(--go)}
+.ap-todo-nudge .ap-todo-kind{color:var(--p3)}
+.ap-todo-expired .ap-todo-kind{color:var(--red)}
+.ap-todo-interview,.ap-todo-offer{background:var(--hot-bg)}
+.ap-todo-body{grid-area:body;min-width:0;display:flex;flex-direction:column;gap:1px}
+.ap-todo-co{font-weight:650;font-size:15px}
+.ap-todo-title{font-size:13.5px;color:var(--dim);line-height:1.35}
+.ap-todo-note{font-size:13px;line-height:1.4;margin-top:2px}
+.ap-todo-when{grid-area:when;font-weight:700;font-size:13px;color:var(--warn);white-space:nowrap;
+  font-variant-numeric:tabular-nums;padding-top:2px;text-align:right}
+.ap-todo-acts{grid-area:acts;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ap-todo-acts:empty{display:none}
+.ap-todo-roles summary{cursor:pointer;font-size:13.5px;color:var(--p2);font-weight:600;padding:2px 0}
+.ap-todo-roles ul{margin:4px 0 2px;padding-left:18px;font-size:13.5px}
+.ap-todo-roles li{margin:3px 0}
+.ap-todo-roles a{color:var(--p2);font-weight:500}
+.ap-todo-empty{padding:12px 0}
+.ap-todo-later{margin:8px 2px 0}
+
+.ap-lane{margin-top:12px}
+.ap-lane summary{cursor:pointer;display:flex;align-items:center;gap:8px;min-height:36px;
+  font-size:14px;font-weight:650;list-style:none}
+.ap-lane summary::-webkit-details-marker{display:none}
+.ap-lane summary::before{content:"";width:7px;height:7px;border-right:2px solid var(--dim);
+  border-bottom:2px solid var(--dim);transform:rotate(-45deg);margin:0 4px 0 2px;transition:transform .12s}
+.ap-lane[open] summary::before{transform:rotate(45deg)}
+.ap-lane-hint{margin:0 0 8px 23px}
+.ap-lane .lg-count{margin-left:0}
+
+/* --- the small buttons rows use ---------------------------------------- */
+.ap-act{min-height:32px;padding:4px 11px;font-size:13px;border-radius:9px;text-decoration:none;
+  display:inline-flex;align-items:center}
+.ap-act-armed{color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+
+/* --- toolbar ----------------------------------------------------------- */
+.ap .lg-toolbar .lg-select{width:auto}
+.ap-toggle{font-weight:500}
+.ap-toggle-on{color:var(--go);background:var(--tag-bg);box-shadow:inset 0 0 0 1px var(--go)}
+.ap-add{margin:0 0 14px}
+.ap-add .lg-form{margin:0}
+
+/* --- rows -------------------------------------------------------------- */
+.ap-rows{list-style:none;margin:0;padding:0;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;overflow:hidden;box-shadow:0 1px 2px var(--shadow)}
+.ap-row{border-top:1px solid var(--line)}
+.ap-row:first-child{border-top:0}
+.ap-row-main{display:grid;width:100%;grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:"co chip" "role role" "when next";gap:1px 10px;align-items:center;
+  padding:9px 12px;border:0;border-radius:0;background:none;text-align:left;font-weight:500;color:var(--ink);
+  overflow-wrap:anywhere;min-height:44px}
+.ap-row-main:hover{background:var(--row)}
+.ap-row-main:focus-visible{outline:2px solid var(--p2);outline-offset:-2px}
+.ap-row-open>.ap-row-main{background:var(--row)}
+.ap-co{grid-area:co;font-weight:650;font-size:15px;min-width:0}
+.ap-role{grid-area:role;font-size:13.5px;color:var(--dim);line-height:1.35;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap-row-open .ap-role{white-space:normal}
+.ap-when{grid-area:when;font-size:12.5px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ap-next{grid-area:next;font-size:12.5px;font-weight:600;color:var(--go);justify-self:end;text-align:right}
+.ap-next:empty{display:none}
+.ap-row-main .lg-chip{grid-area:chip;justify-self:end}
+.ap-late{color:var(--red)}
+
+.ap-cols{display:none}
+
+.ap-detail{padding:4px 12px 12px;display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);
+  overflow-wrap:anywhere}
+.ap-chips{margin:4px 0 0}
+.ap-detail-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}
+.ap-detail-acts:empty{display:none}
+.ap-where{padding:4px 0}
+.ap-controls{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-top:2px}
+.ap-field{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--dim);min-width:0;white-space:nowrap}
+.ap-field .lg-inline{color:var(--ink);white-space:normal}
+.ap-field .lg-inline-empty{color:var(--dim)}
+.ap-detail .lg-inline{min-height:36px;font-size:14px}
+.ap-note{font-size:14px}
+.ap-note .lg-inline{width:100%}
+.ap-history{font-size:13px;color:var(--dim)}
+.ap-history summary{cursor:pointer;padding:6px 0;line-height:18px}
+.ap-history ol{margin:0 0 4px;padding-left:18px}
+.ap-history li{margin:2px 0}
+.ap-more{margin-top:8px}
+
+/* --- held, one line per company ---------------------------------------- */
+.ap-held-hint{margin:-2px 0 10px}
+.ap-held{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:0 0 6px;
+  box-shadow:0 1px 2px var(--shadow)}
+.ap-held summary{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"co when" "n when";
+  gap:0 10px;align-items:center;padding:9px 12px;cursor:pointer;list-style:none;min-height:44px}
+.ap-held summary::-webkit-details-marker{display:none}
+.ap-held-co{grid-area:co;font-weight:650;font-size:15px}
+.ap-held-n{grid-area:n;font-size:12.5px;color:var(--dim)}
+.ap-held-when{grid-area:when;font-size:12.5px;color:var(--warn);font-weight:600;white-space:nowrap;text-align:right}
+.ap-held[open]>summary{border-bottom:1px solid var(--line)}
+.ap-held .ap-rows{border:0;border-radius:0 0 14px 14px;box-shadow:none}
+
+/* --- wider: columns ---------------------------------------------------- */
+@media (min-width:760px){
+  .ap-tiles{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .ap-cols,.ap-row-main{grid-template-columns:150px minmax(0,1fr) 150px 140px 86px;
+    grid-template-areas:"co role when next chip";gap:0 12px}
+  .ap-cols{display:grid;padding:0 12px 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--dim);font-weight:650}
+  .ap-row-main{padding:8px 12px}
+  .ap-co{font-size:14.5px}
+  .ap-role{font-size:14px;color:var(--ink)}
+  .ap-when{font-size:13px}
+  .ap-next{font-size:13px;justify-self:start;text-align:left}
+  .ap-held summary{grid-template-columns:150px minmax(0,1fr) auto;grid-template-areas:"co n when"}
+  .ap-held-n{font-size:14px}
+}
+
+/* --- wide: side panel + list ------------------------------------------- */
+@media (min-width:1000px){
+  .ap{grid-template-columns:360px minmax(0,1fr);gap:28px;align-items:start}
+  .ap-side{position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow:auto;
+    scrollbar-width:thin;padding-right:2px}
+  .ap-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ap-todo-sec{margin-bottom:12px}
+}
+
+@media (max-width:560px){
+  .ap-todo-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"kind kind" "body when" "acts acts"}
+  .ap-todo-kind{padding-top:0;min-width:0}
+}

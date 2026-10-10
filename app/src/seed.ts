@@ -1,3 +1,4 @@
+import type { LedgerSeed } from "./ledger/types";
 import type { Seed } from "./types";
 
 /* data.js (real, gitignored) and data.example.js (invented, committed) are both
@@ -16,6 +17,23 @@ const EMPTY: Seed = {
 };
 
 export const SEED: Seed = window.SEED ?? EMPTY;
+
+/** A seed's ledger with every list present. An older data.js has no ledger at
+ *  all, and a list the exporter left out should read as empty, not crash a view.
+ *  Takes the seed so a data.js read off the connected folder goes through it too. */
+export function ledgerSeed(seed: Seed): LedgerSeed {
+  const l: Partial<LedgerSeed> = seed.ledger ?? {};
+  return {
+    applications: l.applications ?? [],
+    people: l.people ?? [],
+    companies: l.companies ?? [],
+    opensource: l.opensource ?? [],
+    learning: l.learning ?? [],
+    appliedEdits: l.appliedEdits ?? [],
+  };
+}
+
+export const LEDGER_SEED: LedgerSeed = ledgerSeed(SEED);
 
 /** The address outreach is sent from. Never written into the source: this repo
  *  is public and a literal address would be scraped off GitHub within a day. */

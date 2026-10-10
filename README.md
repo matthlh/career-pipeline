@@ -46,6 +46,9 @@ python3 scripts/run.py <job>
 | `export-app` | daily | Regenerates `app/public/data.js` for the app |
 | `check` | before a commit | Leak check, pipeline tests, app types and app tests |
 | `mark` | as needed | `mark <email> sent\|replied\|bounced\|dead` |
+| `applications` | daily (the School morning check runs it) | Rewrite `data/APPLICATIONS.md`: every application out, plus `data/open_postings.jsonl`, the employer-site postings still to send, by deadline. `brief=1` prints the morning block; `query=1` prints the Gmail search for replies |
+| `mark-app` | when an employer answers, or after you apply on their site | `mark-app <job_id> interview\|offer\|rejected\|withdrawn\|closed\|note [text]`; on an open posting, `applied` moves it into the ledger and `skip` drops it |
+| `ledger-import` | automatic, first thing in `applications` and `export-app` | Folds the app's edit log (`app/public/ledger-edits.json`) into `data/`: status changes through the same code as `mark-app`, everything else into `data/ledger.jsonl`. An edit it cannot apply is reported once and never retried |
 
 Judgment steps shell out to the `claude` CLI, so it runs off a Claude
 subscription and needs no API key. A usage limit raises `LLMUnavailable`, halts
@@ -88,17 +91,22 @@ React 18 and TypeScript, built with Vite. `npm run dev` in `app/`, or open
 `app/dist/index.html` directly — the bundle is an IIFE behind a classic script
 tag, so `file://` still works.
 
-- **Today** — decides for you. Follow-ups due, then live threads, then new sends.
-  Each card fills the right template with the person's name and the researched
-  fact, tells you whether to use email or LinkedIn, and gives you one button.
-- **People** — every contact, their status, and which channel you used, so a
-  follow-up knows where to go.
-- **Process** — what the pipeline is doing and why the order is what it is.
+- **Applications** — the ledger. Six tiles say where everything stands (applied,
+  interviews, offers, to apply, held for a referral, closed) and double as
+  filters. *Do next* is the week's to-do list: offers and interviews first, then
+  whatever closes in the next seven days, with held big-tech roles grouped into
+  one referral ask per company. Rolling postings, quiet applications (14+ days,
+  one nudge each) and passed deadlines sit in their own collapsed lanes. Below
+  that, one row per application; tap a row for the controls and history. On a
+  laptop the tiles and the to-do list sit beside the list.
+- **Learning** — what the postings keep asking for, in four lanes.
 - **Templates** — a decision tree over seven messages. Three of its paths refuse
   to give you a template, which is the point.
 
-State lives in `localStorage` keyed by email and is merged over the generated
-data, so refreshing the dataset never wipes what you have tracked.
+Every change is an append-only edit log in `localStorage` (and in
+`ledger-edits.json` when a folder is connected read-write), applied over the
+generated data, so refreshing the dataset never wipes what you have tracked and
+`run.py ledger-import` folds it back into the files.
 
 Message length is not left to taste. A cold email under 100 words replies at
 about 11.9% and one of 100-200 words at 1.9%, so every message shows its word

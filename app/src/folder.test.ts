@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { parseSeed } from "./folder";
+import { EDITS_FILE, access, parseSeed, writeEdits } from "./folder";
+import type { EditsFile } from "./ledger/types";
 
 /* parseSeed is the only pure part of the folder connection, and it is the part
    that touches a file off disk, so it is the part worth testing. */
@@ -36,5 +37,90 @@ describe("reading data.js off disk", () => {
 
   it("survives a trailing semicolon, newline and comment", () => {
     expect(parseSeed(REAL + "\n/* trailing */\n").people).toHaveLength(1);
+  });
+});
+
+/* The permission and write paths need a real Chromium for the picker, but not
+   for the logic around it: a fake handle stands in for the browser. */
+type Perm = "granted" | "denied" | "prompt";
+
+function fakeDir(perm: Record<"read" | "readwrite", Perm>, after: Perm = "granted") {
+  const calls: string[] = [];
+  const files = new Map<string, string>();
+  let failWrite = false;
+  const handle = {
+    queryPermission: async ({ mode }: { mode: "read" | "readwrite" }) => {
+      calls.push(`query ${mode}`); return perm[mode];
+    },
+    requestPermission: async ({ mode }: { mode: "read" | "readwrite" }) => {
+      calls.push(`request ${mode}`); perm[mode] = after; return after;
+    },
+    getFileHandle: async (name: string, opts?: { create?: boolean }) => {
+      calls.push(`open ${name}${opts?.create ? " create" : ""}`);
+      return {
+        createWritable: async () => {
+          let buf = "";
+          return {
+            write: async (s: string) => { if (failWrite) throw new Error("disk full"); buf += s; },
+            close: async () => { calls.push("close"); files.set(name, buf); },
+            abort: async () => { calls.push("abort"); },
+          };
+        },
+      };
+    },
+  };
+  return {
+    handle: handle as unknown as FileSystemDirectoryHandle, calls, files,
+    breakWrites: () => { failWrite = true; },
+  };
+}
+
+describe("folder permissions", () => {
+  it("asks for read by default, as it always has", async () => {
+    const d = fakeDir({ read: "granted", readwrite: "prompt" });
+    expect(await access(d.handle, false)).toBe("granted");
+    expect(d.calls).toEqual(["query read"]);
+  });
+
+  it("checks readwrite separately - a read grant does not imply it", async () => {
+    const d = fakeDir({ read: "granted", readwrite: "prompt" });
+    expect(await access(d.handle, false, "readwrite")).toBe("needs-click");
+    expect(d.calls).toEqual(["query readwrite"]);
+  });
+
+  it("requests readwrite only when asked to", async () => {
+    const d = fakeDir({ read: "granted", readwrite: "prompt" });
+    expect(await access(d.handle, true, "readwrite")).toBe("granted");
+    expect(d.calls).toEqual(["query readwrite", "request readwrite"]);
+  });
+
+  it("reports a refusal as denied", async () => {
+    const d = fakeDir({ read: "granted", readwrite: "prompt" }, "denied");
+    expect(await access(d.handle, true, "readwrite")).toBe("denied");
+  });
+});
+
+describe("writing the edit log into the folder", () => {
+  const file: EditsFile = { version: 1, edits: [{
+    id: "e-1-aaaa", at: "2026-10-04T17:00:00.000Z", kind: "application", target: "184771",
+    op: "event", event: { status: "interview", note: "phone screen" },
+  }] };
+
+  it("writes ledger-edits.json as two-space JSON, creating it if needed", async () => {
+    const d = fakeDir({ read: "granted", readwrite: "granted" });
+    await writeEdits(d.handle, file);
+    expect(EDITS_FILE).toBe("ledger-edits.json");
+    expect(d.calls).toEqual(["open ledger-edits.json create", "close"]);
+    const text = d.files.get("ledger-edits.json")!;
+    expect(JSON.parse(text)).toEqual(file);
+    expect(text).toBe(JSON.stringify(file, null, 2) + "\n");
+  });
+
+  it("aborts rather than closing a half-written file, and still throws", async () => {
+    const d = fakeDir({ read: "granted", readwrite: "granted" });
+    d.breakWrites();
+    await expect(writeEdits(d.handle, file)).rejects.toThrow("disk full");
+    expect(d.calls).toEqual(["open ledger-edits.json create", "abort"]);
+    expect(d.files.size).toBe(0);
   });
 });

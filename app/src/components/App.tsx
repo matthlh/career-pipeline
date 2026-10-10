@@ -1,37 +1,85 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { nextPeak, today } from "../rules";
-import { DEMO, PUBLIC_ORIGIN, REPO_URL, SEED, setShowingDemo, showingDemo } from "../seed";
-import { applyTheme, loadState, loadTheme, saveState, watchSystemTheme, type Theme } from "../storage";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DEMO, LEDGER_SEED, PUBLIC_ORIGIN, REPO_URL, SEED, ledgerSeed, setShowingDemo, showingDemo } from "../seed";
+import { applyTheme, loadTheme, watchSystemTheme, type Theme } from "../storage";
 import { Logo, toast } from "../ui";
-import { People } from "./People";
-import { Process } from "./Process";
-import { RopesPanel } from "./Ropes";
 import * as folder from "../folder";
+import { applyEdits } from "../ledger/apply";
+import { sentCounts } from "../ledger/todo";
+import { connectFolderForWrites, useLedger } from "../ledger/useLedger";
+import type { LedgerApi } from "../ledger/types";
+import { Applications } from "./ledger/Applications";
+import { Learning } from "./ledger/Learning";
 import { TemplatesTab } from "./TemplatesTab";
-import { Today } from "./Today";
-import type { AppState, PersonState, Seed } from "../types";
+import type { Seed } from "../types";
 
 const THEME_LABEL: Record<Theme, string> = { auto: "System", light: "Light", dark: "Dark" };
 
-type Tab = "today" | "people" | "process" | "templates";
+/* Three tabs. People, Companies and Open source were views too (Oct 4-9),
+   and went: he is not going to work contacts by hand, so a screen for them was
+   a screen to feel bad in front of. The data behind them is still in the seed. */
+type Tab = "applications" | "learning" | "templates";
 const TABS: [Tab, string][] = [
-  ["today", "Today"], ["people", "People"], ["process", "Process"], ["templates", "Templates"],
+  ["applications", "Applications"], ["learning", "Learning"], ["templates", "Templates"],
 ];
 
-export function App() {
-  const [tab, setTab] = useState<Tab>("today");
-  const [state, setState] = useState<AppState>(loadState);
-  const [theme, setTheme] = useState<Theme>(loadTheme);
-  const file = useRef<HTMLInputElement>(null);
+/* Session-scoped, like the demo switch: a reload lands where you were, a fresh
+   launch starts on Applications. */
+const TAB_KEY = "career.tab";
 
-  /* Skip the save on mount. Writing state before anything has happened is what
-     poisoned the published copy: the stored empty object then looked like real
-     progress on the next visit. */
-  const mounted = useRef(false);
+function loadTab(): Tab {
+  try {
+    const t = sessionStorage.getItem(TAB_KEY);
+    return TABS.some(([k]) => k === t) ? (t as Tab) : "applications";
+  } catch {
+    return "applications";
+  }
+}
+
+function saveTab(t: Tab): void {
+  try { sessionStorage.setItem(TAB_KEY, t); } catch { /* private window */ }
+}
+
+/* The example ledger with nothing applied: what "Switch to example data" shows.
+   Read-only on purpose. Edits made there would land in the real log, and from
+   there in ledger-edits.json and the real files. */
+const EXAMPLE_API: LedgerApi = {
+  ledger: applyEdits(LEDGER_SEED, []),
+  pending: 0,
+  savedTo: "local",
+  edit: () => toast("Example data is read-only. Show your data again to make changes."),
+};
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+export function App() {
+  const [tab, setTabState] = useState<Tab>(loadTab);
+  const [theme, setTheme] = useState<Theme>(loadTheme);
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  /* One clock for the whole render, so every view agrees on what "today" and
+     "closing soon" mean, and a page left open overnight rolls over by itself. */
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    if (!mounted.current) { mounted.current = true; return; }
-    saveState(state);
-  }, [state]);
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  function setTab(t: Tab) {
+    setTabState(t);
+    saveTab(t);
+  }
+
+  /* Three tabs fit any phone, but the bar still scrolls if it ever has to;
+     keep the current tab in view without moving the page itself. */
+  useEffect(() => {
+    const bar = tabsRef.current;
+    const on = bar?.querySelector<HTMLElement>("button.on");
+    if (!bar || !on) return;
+    const b = bar.getBoundingClientRect(), r = on.getBoundingClientRect();
+    if (r.left < b.left) bar.scrollLeft -= b.left - r.left + 8;
+    else if (r.right > b.right) bar.scrollLeft += r.right - b.right + 8;
+  }, [tab]);
+
   useEffect(() => { applyTheme(theme); }, [theme]);
 
   /* Keep the browser-chrome colour honest when the OS flips while the page is
@@ -66,13 +114,14 @@ export function App() {
 
   useEffect(() => { if (folder.supported()) void loadFolder(false); }, [loadFolder]);
 
-  async function connectFolder() {
+  async function connectFolder(): Promise<boolean> {
     try {
       await folder.choose();
       await loadFolder(true);
       toast("Folder connected");
+      return true;
     } catch {
-      /* the picker was dismissed */
+      return false;                       // the picker was dismissed
     }
   }
 
@@ -83,11 +132,17 @@ export function App() {
     toast("Folder disconnected");
   }
 
-  /* Two ways in. Locally, data.js ships alongside the page. On a published copy
-     there is no data.js - you import the export file, which carries the people
-     as well as the progress, so no one's address is ever on a public URL. */
+  /* Writing back is a bigger grant than reading, so it is asked for here, on a
+     click, and never in the middle of an edit. */
+  async function saveToFolder() {
+    if (!(await folder.saved()) && !(await connectFolder())) return;
+    const ok = await connectFolderForWrites();
+    toast(ok ? "Saving to folder"
+      : "Not saved: the folder needs write permission. Click Save to folder again to allow it.");
+  }
+
   /* One switch for showing the screen to someone. It swaps the *displayed*
-     people for the invented ones without disconnecting anything, because the
+     ledger for the invented one without disconnecting anything, because the
      alternative - disconnect, demo, remember to reconnect - is the kind of
      thing you forget in exactly the direction you cannot afford to. */
   const [demoView, setDemoView] = useState(showingDemo);
@@ -96,123 +151,32 @@ export function App() {
     setDemoView(on);
   }
 
-  const imported = state.people?.length ? state.people : null;
-  const real = imported ?? dir?.people ?? null;
-  const realCounts = state.counts ?? dir?.counts ?? null;
   /* Real data exists but is being withheld from the screen on purpose. */
-  const hidden = demoView && !!real;
+  const hidden = demoView && !!dir;
+  /* Invented data on screen: the published demo, or the switch above. */
+  const example = hidden || (DEMO && !dir);
 
-  const people = hidden ? SEED.people : (real ?? SEED.people);
-  const counts = hidden ? SEED.counts : (realCounts ?? SEED.counts);
+  const realSeed = useMemo(() => (dir ? ledgerSeed(dir) : LEDGER_SEED), [dir]);
+  const live = useLedger(realSeed);
+  const api = hidden ? EXAMPLE_API : live;
+  const generated = (!hidden && dir?.generated) || SEED.generated;
 
-  /* Person state is merged, never replaced, so a data.js refresh that adds new
-     people cannot wipe what you have already tracked. */
-  function upd(id: string, patch: Partial<PersonState>) {
-    setState((s) => {
-      const was = s.p[id];
-      return {
-        ...s,
-        p: { ...s.p, [id]: { ...was, ...patch, peak: nextPeak(was, patch.status) } },
-        log: patch.status === "messaged"
-          ? [...s.log, { id, at: new Date().toISOString(), ch: patch.channel }]
-          : s.log,
-      };
-    });
-  }
-
-  function setRope(i: number, on: boolean) {
-    setState((s) => ({ ...s, ropes: { ...s.ropes, [i]: on } }));
-  }
-
-  function exportState() {
-    const out = { ...state, people, counts, generated: SEED.generated };
-    const blob = new Blob([JSON.stringify(out, null, 1)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "outreach-" + today() + ".json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  /* Shared by the file picker and by dropping a file anywhere on the page.
-     On a phone the picker is fine; on a laptop, dragging the export out of
-     Downloads is one gesture instead of four. */
-  function readExport(f: File | undefined) {
-    if (!f) return;
-    const r = new FileReader();
-    r.onerror = () => toast("Could not read that file");
-    r.onload = () => {
-      let incoming: AppState;
-      try { incoming = JSON.parse(String(r.result)) as AppState; }
-      catch { toast("That is not a JSON file"); return; }
-      if (!incoming || typeof incoming.p !== "object") { toast("Not an outreach export"); return; }
-      setState(incoming);
-      toast(`Loaded ${incoming.people?.length ?? 0} people, ${Object.keys(incoming.p).length} tracked`);
-    };
-    r.readAsText(f);
-  }
-
-  function importState(ev: React.ChangeEvent<HTMLInputElement>) {
-    const f = ev.target.files?.[0];
-    /* Cleared before the read, not after: a file input fires no change event
-       when you pick the same file twice, and re-importing the export you just
-       fixed is the single most likely second attempt. */
-    ev.target.value = "";
-    readExport(f);
-  }
-
-  /* Drop anywhere on the window, not on a wrapper element. The app's root uses
-     display:contents so a wrapper has no box of its own, and dropping on the
-     empty space below the content would miss it. Depth counting rather than a
-     boolean because dragenter fires again for every child crossed. */
-  const [dragging, setDragging] = useState(false);
-  useEffect(() => {
-    let depth = 0;
-    const isFile = (e: DragEvent) =>
-      Array.from(e.dataTransfer?.types ?? []).includes("Files");
-    const enter = (e: DragEvent) => {
-      if (!isFile(e)) return;
-      depth++;
-      setDragging(true);
-    };
-    const leave = () => { depth = Math.max(0, depth - 1); if (!depth) setDragging(false); };
-    // Without preventDefault on dragover the browser navigates to the file
-    // instead of letting the page have it.
-    const over = (e: DragEvent) => { if (isFile(e)) e.preventDefault(); };
-    const drop = (e: DragEvent) => {
-      if (!isFile(e)) return;
-      e.preventDefault();
-      depth = 0;
-      setDragging(false);
-      readExport(e.dataTransfer?.files?.[0]);
-    };
-    window.addEventListener("dragenter", enter);
-    window.addEventListener("dragleave", leave);
-    window.addEventListener("dragover", over);
-    window.addEventListener("drop", drop);
-    return () => {
-      window.removeEventListener("dragenter", enter);
-      window.removeEventListener("dragleave", leave);
-      window.removeEventListener("dragover", over);
-      window.removeEventListener("drop", drop);
-    };
-  }, []);
-
-  const sent = state.log.length;
+  /* The one number that matters, counted the honest way: a rejection was still
+     an application sent. "Saved for later" is not here any more - most of it
+     is big tech held for referrals, and counting that as progress was a lie. */
+  const sent = useMemo(() => sentCounts(api.ledger.applications, now), [api.ledger.applications, now]);
 
   return (
     <>
-      {dragging && <div className="dropzone">Drop the export to load it</div>}
-
       <div className="head">
         <div className="brand">
           <Logo />
           <div>
-          <h1>Outreach</h1>
+          <h1>Ledger</h1>
           <div className="sm dim">
-            {DEMO ? "A job-search pipeline, running on invented data."
-              : sent === 0 ? "Zero sent. That is still the only number that matters."
-              : sent + " sent since you started. Keep the streak."}
+            {example ? "A job-search ledger, running on invented data."
+              : sent.total === 0 ? "Nothing sent yet."
+              : `${plural(sent.total, "application", "applications")} sent${sent.week ? `, ${sent.week} this week` : ""}.`}
           </div>
           </div>
         </div>
@@ -226,13 +190,53 @@ export function App() {
         </button>
       </div>
 
+      {/* Where his changes are. Says nothing on invented data: there, a count of
+          unsaved changes would be a demonstration posing as a warning. */}
+      {(folder.supported() || (!example && (live.savedTo === "folder" || live.pending > 0))) && (
+        <div className="row sm dim" style={{ alignItems: "center", marginTop: 10 }}>
+          {!example && (live.savedTo === "folder" ? (
+            <span role="status">Saved to folder</span>
+          ) : live.pending > 0 ? (
+            <>
+              <span role="status">{plural(live.pending, "change", "changes")} saved in this browser</span>
+              {folder.supported() && (
+                <button className="tiny sel" onClick={() => void saveToFolder()}>Save to folder</button>
+              )}
+            </>
+          ) : null)}
+          {folder.supported() && (dirState === "on"
+            ? <button className="tiny ghost" onClick={() => void disconnectFolder()}>Disconnect folder</button>
+            : <button className="tiny ghost" onClick={() => void connectFolder()}>Connect data folder</button>)}
+        </div>
+      )}
+
+      {dirState === "needs-click" && (
+        <div className="warn" style={{ marginTop: 10, marginBottom: 0 }}>
+          <b>Your data folder is connected but locked.</b> Browsers re-ask on a fresh visit,
+          and only a click can answer.
+          <div style={{ marginTop: 8 }}>
+            <button className="tiny sel" onClick={() => void loadFolder(true)}>Unlock it</button>
+          </div>
+        </div>
+      )}
+      {dirState === "error" && (
+        <div className="warn stop" style={{ marginTop: 10, marginBottom: 0 }}>
+          <b>Could not read that folder.</b> {dirError} Pick the folder containing{" "}
+          <code>data.js</code> — that is <code>app/public</code>.
+          <div style={{ marginTop: 8 }} className="row">
+            <button className="tiny" onClick={() => void connectFolder()}>Pick again</button>
+            <button className="tiny ghost" onClick={() => void disconnectFolder()}>Forget it</button>
+          </div>
+        </div>
+      )}
+
       {/* Real data on a public URL. Nobody else can see it - there is no server
           and nothing is uploaded - but the person next to you can. */}
-      {PUBLIC_ORIGIN && real && !hidden && (
+      {PUBLIC_ORIGIN && dir && !hidden && (
         <div className="warn" style={{ marginTop: 14, marginBottom: 0 }}>
           <b>Your own data is loaded on the public URL.</b> Only in this browser: nothing was
-          uploaded, and every other visitor gets the twelve invented people. But anyone looking
-          at this screen is looking at real addresses.
+          uploaded, and every other visitor gets the invented example data. But anyone looking
+          at this screen is looking at real names and addresses.
           <div className="row" style={{ marginTop: 9 }}>
             <button className="tiny sel" onClick={() => setDemoViewPersisted(true)}>
               Switch to example data
@@ -243,8 +247,9 @@ export function App() {
 
       {hidden && (
         <div className="warn" style={{ marginTop: 14, marginBottom: 0 }}>
-          <b>Showing example data.</b> Your {real!.length} real contacts are still connected and
-          untouched — they are just off the screen. This resets when you close the browser.
+          <b>Showing example data.</b> Your {plural(realSeed.applications.length, "application", "applications")}{" "}
+          are still connected and untouched — they are just off the screen, and nothing here can
+          change them. This resets when you close the browser.
           <div className="row" style={{ marginTop: 9 }}>
             <button className="tiny sel" onClick={() => setDemoViewPersisted(false)}>
               Show my data again
@@ -253,15 +258,15 @@ export function App() {
         </div>
       )}
 
-      {DEMO && !real && (
+      {DEMO && !dir && (
         <div className="warn" style={{ marginTop: 14, marginBottom: 0 }}>
-          <b>This is the demo.</b> Twelve invented people at invented companies on the{" "}
+          <b>This is the demo.</b> Invented applications and companies on the{" "}
           <code>.example</code> domain reserved by RFC 2606, so nothing here resolves to anyone's
           inbox. Everything else is the real thing: same build, same rules, same templates. The
-          copy on my laptop points at a store of real contacts, which is gitignored and has never
-          been pushed — which is why this one ships empty and takes its data through Import.
+          copy on my laptop reads a folder of real data, which is gitignored and has never been
+          pushed. Changes you make here stay in this browser.
           <div className="sm dim" style={{ marginTop: 8, marginBottom: 0 }}>
-            Start on <b>Process</b> for what the pipeline does and whether it is working, or{" "}
+            Start on <b>Applications</b> for what went in and what to do next, or{" "}
             <b>Templates</b> for the decision tree — three of its seven paths refuse to give you a
             message, which is the part I would want you to look at.{" "}
             <a href={REPO_URL} target="_blank" rel="noopener">Source</a>.
@@ -269,82 +274,18 @@ export function App() {
         </div>
       )}
 
-      <div className="tabs">
+      <div className="tabs" ref={tabsRef} role="navigation" aria-label="Sections">
         {TABS.map(([k, label]) => (
-          <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{label}</button>
+          <button key={k} className={tab === k ? "on" : ""} aria-current={tab === k ? "page" : undefined}
+            onClick={() => setTab(k)}>{label}</button>
         ))}
       </div>
 
-      {people.length === 0 ? (
-        <div className="card">
-          <h3>No data loaded.</h3>
-          <p className="sm dim">
-            This copy is published without contact data on purpose — it would put real people's
-            addresses on a public URL. There is no account to sign into and nothing is uploaded
-            anywhere; the data lives on whichever machine you put it on.
-          </p>
-          {folder.supported() && (
-            <p className="sm dim">
-              <b>On the machine with the pipeline:</b> connect the folder the pipeline writes
-              into — <code>app/public</code> — and this page reads it on every visit, so
-              whatever cron wrote this morning is just here. The browser remembers the folder;
-              nothing is uploaded and nothing leaves the machine.
-              <div style={{ marginTop: 8 }}>
-                <button className="tiny sel" onClick={connectFolder}>Connect data folder</button>
-              </div>
-            </p>
-          )}
-          <p className="sm dim">
-            <b>{folder.supported() ? "Or open it from disk:" : "On the machine with the pipeline:"}</b>{" "}
-            run <code>python3 scripts/run.py app</code> and bookmark the file it opens. No
-            server, no terminal after the first time.
-          </p>
-          <p className="sm dim">
-            <b>Anywhere else:</b> hit <b>Export progress</b> there, then drop that file
-            anywhere on this page. It carries the people and your progress together, and stays
-            in this browser.
-          </p>
-          <button className="tiny" onClick={() => file.current?.click()}>Choose a file</button>
-        </div>
-      ) : (
-        <>
-          {tab === "today" && <Today people={people} state={state} upd={upd} />}
-          {tab === "people" && <People people={people} state={state} upd={upd} />}
-          {tab === "process" && <Process people={people} state={state} counts={counts} />}
-          {tab === "templates" && <TemplatesTab />}
-        </>
-      )}
-
-      <RopesPanel done={state.ropes || {}} setRope={setRope} />
+      {tab === "applications" && <Applications api={api} now={now} />}
+      {tab === "learning" && <Learning api={api} now={now} />}
+      {tab === "templates" && <div className="narrow"><TemplatesTab /></div>}
 
       <div className="foot">
-        {dirState === "needs-click" && (
-          <div className="warn" style={{ marginBottom: 10 }}>
-            <b>Your data folder is connected but locked.</b> Browsers re-ask on a fresh visit,
-            and only a click can answer.
-            <div style={{ marginTop: 8 }}>
-              <button className="tiny sel" onClick={() => void loadFolder(true)}>Unlock it</button>
-            </div>
-          </div>
-        )}
-        {dirState === "error" && (
-          <div className="warn stop" style={{ marginBottom: 10 }}>
-            <b>Could not read that folder.</b> {dirError} Pick the folder containing{" "}
-            <code>data.js</code> — that is <code>app/public</code>.
-            <div style={{ marginTop: 8 }} className="row">
-              <button className="tiny" onClick={connectFolder}>Pick again</button>
-              <button className="tiny ghost" onClick={disconnectFolder}>Forget it</button>
-            </div>
-          </div>
-        )}
-        <div className="row" style={{ marginBottom: 8 }}>
-          <button className="tiny ghost" onClick={exportState}>Export progress</button>
-          <button className="tiny ghost" onClick={() => file.current?.click()}>Import</button>
-          <input ref={file} type="file" accept="application/json" style={{ display: "none" }} onChange={importState} />
-          {folder.supported() && (dirState === "on"
-            ? <button className="tiny ghost" onClick={disconnectFolder}>Disconnect folder</button>
-            : <button className="tiny ghost" onClick={connectFolder}>Connect data folder</button>)}
-        </div>
         {dirState === "on" && (
           <div style={{ marginBottom: 6 }}>
             Reading <code>data.js</code> from your connected folder — re-read on every visit, so
@@ -352,9 +293,12 @@ export function App() {
             never sent anywhere; this page has no network calls of its own.
           </div>
         )}
-        {counts.people} people from {counts.companies} companies, data generated{" "}
-        {state.generated ?? SEED.generated}. Progress is saved in this browser only — export it
-        before you switch machines, or drop the file anywhere on this page to load it.
+        Data generated {generated}.{" "}
+        {example
+          ? "Changes stay in this browser."
+          : <>Changes are kept in this browser{live.savedTo === "folder" && <>{" "}and copied to{" "}
+              <code>ledger-edits.json</code> in the connected folder</>} until{" "}
+              <code>python3 scripts/run.py ledger-import</code> folds them into the files.</>}
       </div>
     </>
   );

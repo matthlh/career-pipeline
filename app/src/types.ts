@@ -2,6 +2,8 @@
    app keeps on top of them. Person is generated and read-only; PersonState is
    everything you do about a person and is the only thing localStorage holds. */
 
+import type { LedgerSeed } from "./ledger/types";
+
 export type Status =
   | "not contacted" | "applied" | "messaged" | "replied"
   | "call booked" | "call done" | "built it" | "dead";
@@ -99,6 +101,8 @@ export interface Seed {
   counts: Counts;
   people: Person[];
   demo?: DemoSeed;
+  /** The ledger's view of the data files. Absent in a data.js written before it. */
+  ledger?: LedgerSeed;
 }
 
 export type ActionKind =

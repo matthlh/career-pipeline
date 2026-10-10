@@ -2,6 +2,8 @@
 # Written by scripts/jobs/export_app.py into the Vite public/ directory, so
 # both `npm run dev` and `npm run build` pick it up without an extra step.
 app/public/data.js
+# The app's edit log: real names and notes, folded into data/ by ledger-import.
+app/public/ledger-edits.json
 data/
 drafts/
 inputs/*

@@ -19,6 +19,9 @@ JOBS = {
     "export-app": ("jobs.export_app", "Regenerate app/public/data.js for the app"),
     "status": ("jobs.status", "Rewrite STATUS.md"),
     "mark": ("jobs.mark", "Record an outcome: mark <email> sent|replied|bounced|dead"),
+    "applications": ("jobs.applications", "Rewrite data/APPLICATIONS.md, the ledger of what is out (brief=1 for the short block)"),
+    "mark-app": ("jobs.mark_app", "Record what happened: mark-app <job_id> interview|offer|rejected|withdrawn|closed [note]"),
+    "ledger-import": ("jobs.ledger_import", "Fold the app's edit log (app/public/ledger-edits.json) into data/"),
     "check": ("jobs.check", "Run the leak check, the pipeline tests and the app tests"),
     "app": ("jobs.app", "Open the app from disk - no server, no terminal after this"),
 }
@@ -48,8 +51,13 @@ def main():
 
     print("=== %s ===" % job)
     import store
+    if job in ("applications", "export-app"):
+        _import_ledger_edits()
     try:
-        if job in ("status", "check", "app"):
+        if job in ("status", "check", "app", "applications", "ledger-import"):
+            # `applications` only reads the store, and `ledger-import` runs ahead
+            # of it; a morning brief must never fail because a cron job happened
+            # to hold the lock.
             result = module.run(**kwargs)
         else:
             with store.JobLock("store"):
@@ -64,6 +72,17 @@ def main():
         status_job.run()
     print("=== %s done: %s ===" % (job, result))
     return 0
+
+
+def _import_ledger_edits():
+    """Fold in what was changed in the app before reading or exporting the files,
+    so neither shows a state the app has already moved past. Never fatal: a bad
+    edit log costs one line, not the morning brief."""
+    try:
+        import jobs.ledger_import as ledger_import
+        ledger_import.run(quiet=1)
+    except Exception as e:
+        print("ledger-import skipped: %s" % e)
 
 
 def _log_error(job):
