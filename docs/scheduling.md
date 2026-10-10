@@ -54,10 +54,10 @@ permissions rather than needing its own grant.
 
 ```bash
 python3 scripts/gen_launchagents.py --out ~/Library/LaunchAgents
-for f in ~/Library/LaunchAgents/com.matthlh.career-pipeline.*.plist; do
+for f in ~/Library/LaunchAgents/com.matthlh.groundwork.*.plist; do
   launchctl unload "$f" 2>/dev/null; launchctl load "$f"
 done
-crontab -l | grep -v career-pipeline | crontab -   # retire the cron entries
+crontab -l | grep -vF "$(pwd)" | crontab -   # retire the cron entries (run from the repo)
 ```
 
 Run the generator without `--out` first to print the plists and read them.
@@ -66,7 +66,7 @@ It never installs anything itself.
 Undo:
 
 ```bash
-for f in ~/Library/LaunchAgents/com.matthlh.career-pipeline.*.plist; do
+for f in ~/Library/LaunchAgents/com.matthlh.groundwork.*.plist; do
   launchctl unload "$f"; rm "$f"
 done
 ```
