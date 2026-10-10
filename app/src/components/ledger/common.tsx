@@ -2,6 +2,7 @@
    Styles live in ledger.css (imported once here). Keep this file small: a
    piece belongs here only when at least two views use it. */
 import { useEffect, useState, type ReactNode } from "react";
+import { fmtDeadline } from "../../ledger/rules";
 import "./ledger.css";
 
 export type Tone = "go" | "warn" | "red" | "dim" | "p2";
@@ -91,15 +92,19 @@ export function Toolbar({ query, onQuery, placeholder, children }: {
   );
 }
 
-/** A collapsible "Add ..." form. Fields are plain inputs keyed by name; the
- *  first field is required. Calls onAdd with trimmed values (empty -> null). */
+/** A collapsible "Add ..." form. Fields are plain inputs keyed by name, or a
+ *  select when given options (the first option is the default); the first
+ *  field is required. Calls onAdd with trimmed values (empty -> null). */
 export function AddForm({ label, fields, onAdd }: {
   label: string;
-  fields: { name: string; placeholder: string; type?: "text" | "url" | "date" }[];
+  fields: {
+    name: string; placeholder: string; type?: "text" | "url" | "date";
+    options?: readonly { value: string; label: string }[];
+  }[];
   onAdd: (values: Record<string, string | null>) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const empty = () => Object.fromEntries(fields.map((f) => [f.name, ""]));
+  const empty = () => Object.fromEntries(fields.map((f) => [f.name, f.options?.[0]?.value ?? ""]));
   const [vals, setVals] = useState<Record<string, string>>(empty);
   if (!open) {
     return <button type="button" className="lg-btn lg-btn-quiet" onClick={() => setOpen(true)}>+ {label}</button>;
@@ -112,7 +117,12 @@ export function AddForm({ label, fields, onAdd }: {
       onAdd(Object.fromEntries(Object.entries(vals).map(([k, v]) => [k, v.trim() || null])));
       setVals(empty()); setOpen(false);
     }}>
-      {fields.map((f) => (
+      {fields.map((f) => f.options ? (
+        <select key={f.name} className="lg-select" aria-label={f.placeholder} value={vals[f.name] ?? ""}
+          onChange={(e) => setVals({ ...vals, [f.name]: e.target.value })}>
+          {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      ) : (
         <input key={f.name} className="lg-input" type={f.type ?? "text"} placeholder={f.placeholder}
           aria-label={f.placeholder} value={vals[f.name] ?? ""} required={f.name === first}
           onChange={(e) => setVals({ ...vals, [f.name]: e.target.value })} />
@@ -123,6 +133,36 @@ export function AddForm({ label, fields, onAdd }: {
       </div>
     </form>
   );
+}
+
+/** A button that asks once. The second tap within three seconds does it;
+ *  otherwise it forgets, so a thumb that slips on a phone changes nothing. */
+export function Danger({ label, aria, onConfirm }: { label: string; aria: string; onConfirm: () => void }) {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const t = setTimeout(() => setArmed(false), 3000);
+    return () => clearTimeout(t);
+  }, [armed]);
+  return (
+    <button type="button" className={`lg-btn lg-btn-quiet lg-act${armed ? " lg-act-armed" : ""}`}
+      aria-label={armed ? `Confirm: ${aria}` : aria}
+      onClick={() => { if (armed) { setArmed(false); onConfirm(); } else setArmed(true); }}>
+      {armed ? "Sure?" : label}
+    </button>
+  );
+}
+
+/** An event time as a local day ("Mon Oct 5"). A full ISO stamp is UTC, so it is
+ *  converted; a bare date is already local and is never shifted. */
+export function fmtWhen(at: string): string {
+  const s = (at ?? "").trim();
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+    const n = Date.parse(s);
+    if (!Number.isNaN(n)) return fmtDeadline({ deadline: todayLocal(new Date(n)) });
+  }
+  const d = fmtDeadline({ deadline: s.slice(0, 10) });
+  return d === "no date" ? s : d;
 }
 
 /** Today as local YYYY-MM-DD, for "touched today" and "added" stamps. */

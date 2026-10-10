@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { fmtDeadline, groupApplications } from "../../ledger/rules";
 import type { AppEvent, Application } from "../../ledger/types";
 import {
-  filterApps, fmtWhen, historyNewestFirst, newApplication, safeUrl, splitHeld, statusOptions, whenLabel,
+  filterApps, historyNewestFirst, newApplication, safeUrl, splitHeld, statusOptions, whenLabel,
   type AppFilter,
 } from "./Applications";
-import { todayLocal } from "./common";
+import { fmtWhen, todayLocal } from "./common";
 
 // Sunday 4 Oct 2026, 9pm local.
 const NOW = new Date(2026, 9, 4, 21, 0);

@@ -41,6 +41,7 @@
 .ap-todo-interview .ap-todo-kind,.ap-todo-offer .ap-todo-kind{color:var(--go)}
 .ap-todo-nudge .ap-todo-kind{color:var(--p3)}
 .ap-todo-expired .ap-todo-kind{color:var(--red)}
+.ap-todo-followup .ap-todo-kind{color:var(--warn)}
 .ap-todo-interview,.ap-todo-offer{background:var(--hot-bg)}
 .ap-todo-body{grid-area:body;min-width:0;display:flex;flex-direction:column;gap:1px}
 .ap-todo-co{font-weight:650;font-size:15px}
@@ -66,11 +67,6 @@
 .ap-lane[open] summary::before{transform:rotate(45deg)}
 .ap-lane-hint{margin:0 0 8px 23px}
 .ap-lane .lg-count{margin-left:0}
-
-/* --- the small buttons rows use ---------------------------------------- */
-.ap-act{min-height:32px;padding:4px 11px;font-size:13px;border-radius:9px;text-decoration:none;
-  display:inline-flex;align-items:center}
-.ap-act-armed{color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
 
 /* --- toolbar ----------------------------------------------------------- */
 .ap .lg-toolbar .lg-select{width:auto}

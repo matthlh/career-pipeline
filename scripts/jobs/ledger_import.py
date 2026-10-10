@@ -30,7 +30,7 @@ import store
 from jobs import mark_app
 from jobs.applications import STATUSES, status_of
 
-KINDS = ("application", "person", "company", "opensource", "learning")
+KINDS = ("application", "person", "company", "opensource", "learning", "outreach")
 OPS = ("add", "set", "event", "delete")
 
 # Wire name (types.ts, camelCase) -> jsonl name, where they differ.
@@ -238,7 +238,7 @@ def _apply_app(edit, rows, postings):
 # ------------------------------------------------------------- everything else
 
 def _apply_ledger(edit, ledger):
-    """person / company / opensource / learning: one row each in ledger.jsonl."""
+    """person / company / opensource / learning / outreach: one row each in ledger.jsonl."""
     kind, op, target = edit["kind"], edit["op"], edit["target"]
     if op == "event":
         raise Problem("%s %s: only applications take events" % (kind, target))

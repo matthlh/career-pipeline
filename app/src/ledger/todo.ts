@@ -1,6 +1,6 @@
 import { daysSince } from "../rules";
-import { DEAD, deadlineOf, isQuiet } from "./rules";
-import type { Application } from "./types";
+import { DEAD, deadlineOf, isQuiet, outreachAction } from "./rules";
+import type { Application, Outreach } from "./types";
 
 /* ======================= what to do next ================================
 
@@ -188,6 +188,18 @@ export function todoLanes(apps: readonly Application[], now: Date): Todo {
   expired.push(...[...heldExpired.values()].sort((a, b) => b.apps.length - a.apps.length || byCompany(a, b)));
 
   return { now: now_, rolling, nudge, expired, later };
+}
+
+/* ---------------------------------------------------------- follow-ups -- */
+
+/** The threads whose one follow-up is due: outreachAction says "followup",
+ *  which is day FOLLOWUP_DAYS with no reply and no follow-up yet. A thread
+ *  already followed up, answered or closed is never here, so the lane empties
+ *  itself. Longest waiting first; the name breaks ties. */
+export function followUps(rows: readonly Outreach[], now: Date): Outreach[] {
+  return rows
+    .filter((o) => outreachAction(o, now).kind === "followup")
+    .sort((a, b) => a.sent.localeCompare(b.sent) || a.name.localeCompare(b.name));
 }
 
 /* ------------------------------------------------------ held postings -- */

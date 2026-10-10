@@ -263,6 +263,7 @@ class ExampleData(unittest.TestCase):
             "companies": {"id", "name"} | set(export_app.COMPANY_DEFAULTS),
             "opensource": {"id"} | set(export_app.OSS_DEFAULTS),
             "learning": {"id"} | set(export_app.LEARN_DEFAULTS),
+            "outreach": {"id"} | set(export_app.OUTREACH_DEFAULTS),
         }
         for key, fields in shapes.items():
             self.assertTrue(ledger[key], key)
@@ -276,7 +277,7 @@ class ExampleData(unittest.TestCase):
 
 
 LEDGER_KEYS = {"applications", "people", "companies", "opensource", "learning",
-               "appliedEdits"}
+               "outreach", "appliedEdits"}
 
 STORE_PATHS = {"APPLICATIONS": "data/applications.jsonl",
                "OPEN_POSTINGS": "data/open_postings.jsonl",
@@ -322,7 +323,7 @@ class LedgerSeed(unittest.TestCase):
     reads these field names verbatim, so a key that drifts here does not crash
     anything - a column just goes blank."""
 
-    def test_an_empty_store_still_has_all_six_keys(self):
+    def test_an_empty_store_still_has_every_key(self):
         with isolated_store():
             ledger = export_app.load_ledger()
         self.assertEqual(set(ledger), LEDGER_KEYS)

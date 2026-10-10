@@ -244,6 +244,8 @@ OSS_DEFAULTS = {"project": "", "repo": None, "link": None, "status": "exploring"
                 "company": None, "note": None, "added": ""}
 LEARN_DEFAULTS = {"topic": "", "why": None, "link": None, "status": "todo",
                   "note": None, "added": ""}
+OUTREACH_DEFAULTS = {"name": "", "company": None, "channel": "email", "what": "",
+                     "sent": "", "followedUp": None, "status": "sent", "note": None}
 
 
 def company_id(name):
@@ -452,6 +454,7 @@ def build_ledger(applied, postings, contacts, companies, rows, applied_edits=())
         "companies": list(comps.values()),
         "opensource": list(overlay("opensource", {}, OSS_DEFAULTS).values()),
         "learning": list(overlay("learning", {}, LEARN_DEFAULTS).values()),
+        "outreach": list(overlay("outreach", {}, OUTREACH_DEFAULTS).values()),
         "appliedEdits": [str(e) for e in applied_edits],
     }
 

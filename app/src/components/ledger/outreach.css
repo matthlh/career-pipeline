@@ -1,0 +1,68 @@
+/* Outreach view. Tokens from style.css only; every class starts with ou-.
+
+   One column on a phone: who, what went, when, the clock. From 760px the rows
+   get columns, and the buttons sit at the end of the row. */
+
+.ou-toggle{display:inline-flex;align-items:center;gap:8px;min-height:36px;font-size:14px;
+  color:var(--dim);cursor:pointer;user-select:none}
+.ou-toggle input{width:18px;height:18px;margin:0;accent-color:var(--go)}
+.ou-summary{margin:-6px 0 12px}
+.ou-add{margin:0 0 14px}
+.ou-add .lg-form{margin:0}
+.ou-due-n{color:var(--warn);font-weight:600}
+
+/* --- rows -------------------------------------------------------------- */
+.ou-rows{list-style:none;margin:0;padding:0;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;overflow:hidden;box-shadow:0 1px 2px var(--shadow)}
+.ou-row{border-top:1px solid var(--line)}
+.ou-row:first-child{border-top:0}
+.ou-row-main{display:grid;width:100%;grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:"who chip" "what what" "sent next";gap:1px 10px;align-items:center;
+  padding:9px 12px;border:0;border-radius:0;background:none;text-align:left;font-weight:500;color:var(--ink);
+  overflow-wrap:anywhere;min-height:44px}
+.ou-row-main:hover{background:var(--row)}
+.ou-row-main:focus-visible{outline:2px solid var(--p2);outline-offset:-2px}
+.ou-row-open>.ou-row-main{background:var(--row)}
+.ou-who{grid-area:who;min-width:0;font-size:15px}
+.ou-name{font-weight:650}
+.ou-co{color:var(--dim)}
+.ou-what{grid-area:what;font-size:13.5px;color:var(--dim);line-height:1.35;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ou-row-open .ou-what{white-space:normal}
+.ou-ch{font-weight:600}
+.ou-sent{grid-area:sent;font-size:12.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+.ou-next{grid-area:next;font-size:12.5px;font-weight:600;color:var(--warn);justify-self:end;text-align:right}
+.ou-next:empty{display:none}
+.ou-due .ou-next{color:var(--red)}
+.ou-row-main .lg-chip{grid-area:chip;justify-self:end}
+
+.ou-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 12px 10px}
+
+.ou-cols{display:none}
+
+.ou-detail{padding:4px 12px 12px;display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);
+  overflow-wrap:anywhere}
+.ou-why{margin:4px 0 0}
+.ou-controls{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-top:2px}
+.ou-field{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--dim);min-width:0;white-space:nowrap}
+.ou-detail .lg-inline{min-height:36px;font-size:14px}
+.ou-text,.ou-note{font-size:14px}
+.ou-note .lg-inline{width:100%}
+.ou-detail-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:2px}
+
+/* --- wider: columns, buttons on the row -------------------------------- */
+@media (min-width:760px){
+  .ou-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
+  .ou-row>.ou-detail{grid-column:1 / -1}
+  .ou-cols,.ou-row-main{grid-template-columns:170px minmax(0,1fr) 140px 160px 80px;
+    grid-template-areas:"who what sent next chip";gap:0 12px}
+  .ou-cols{display:grid;padding:0 12px 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--dim);font-weight:650}
+  .ou-row-main{padding:8px 12px}
+  .ou-who{font-size:14.5px}
+  .ou-what{font-size:14px;color:var(--ink)}
+  .ou-ch{color:var(--dim)}
+  .ou-sent{font-size:13px}
+  .ou-next{font-size:13px;justify-self:start;text-align:left}
+  .ou-acts{padding:0 12px 0 0;flex-wrap:nowrap}
+}

@@ -33,7 +33,7 @@ function learn(over: Partial<Learning> = {}): Learning {
 function seed(over: Partial<LedgerSeed> = {}): LedgerSeed {
   return {
     applications: [app()], people: [person()], companies: [company(), company({ id: "orphan", name: "Orphan" })],
-    opensource: [oss()], learning: [learn()], appliedEdits: [], ...over,
+    opensource: [oss()], learning: [learn()], outreach: [], appliedEdits: [], ...over,
   };
 }
 
@@ -53,7 +53,7 @@ function deepFreeze<T>(o: T): T {
 
 const COLL: Record<Kind, keyof Ledger> = {
   application: "applications", person: "people", company: "companies",
-  opensource: "opensource", learning: "learning",
+  opensource: "opensource", learning: "learning", outreach: "outreach",
 };
 const ids = (l: Ledger, k: Kind) => (l[COLL[k]] as { id: string }[]).map((x) => x.id);
 const find = (l: Ledger, k: Kind, id: string) =>
@@ -352,7 +352,7 @@ describe("derived companies", () => {
   });
 
   it("withDerivedCompanies is pure and a no-op when nothing is missing", () => {
-    const l = deepFreeze({ applications: [app()], people: [], companies: [company()], opensource: [], learning: [] });
+    const l = deepFreeze({ applications: [app()], people: [], companies: [company()], opensource: [], learning: [], outreach: [] });
     expect(withDerivedCompanies(l)).toBe(l);
     const bare = deepFreeze({ ...l, companies: [] as Company[] });
     expect(withDerivedCompanies(bare).companies.map((c) => c.id)).toEqual(["acme"]);

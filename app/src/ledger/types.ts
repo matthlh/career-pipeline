@@ -24,7 +24,7 @@
                                    per line: {"kind": Kind, "id": string, ...fields}.
                                    A "person" or "company" row here is an overlay merged
                                    over the pipeline record with the same id (or a new one).
-                                   "opensource" and "learning" rows exist only here.
+                                   "opensource", "learning" and "outreach" rows exist only here.
         state/ledger_imported.json {"applied": [edit ids]} -> LedgerSeed.appliedEdits
       Companies are derived: every company named by an application or a person, plus every
       "company" row in data/ledger.jsonl. Company.id = companyId(name).
@@ -47,8 +47,8 @@
                      "delete"           -> a saved posting becomes status "skipped" in
                                            open_postings.jsonl; a submitted application is
                                            never deleted (reported, then marked imported)
-        person/company/opensource/learning "add" | "set"
-                                        -> upsert the row in data/ledger.jsonl
+        person/company/opensource/learning/outreach
+                     "add" | "set"      -> upsert the row in data/ledger.jsonl
                                    "delete" -> the row becomes a tombstone
                                            {"kind", "id", "deleted": true}; export leaves the
                                            entity out even if the pipeline still has it
@@ -63,7 +63,7 @@
    them exactly as spelled here (camelCase), even though the jsonl files are snake_case.
 */
 
-export type Kind = "application" | "person" | "company" | "opensource" | "learning";
+export type Kind = "application" | "person" | "company" | "opensource" | "learning" | "outreach";
 
 /* ---------------------------------------------------------------- applications */
 
@@ -182,6 +182,34 @@ export interface Learning {
   added: string;
 }
 
+/* ---------------------------------------------------------------- outreach */
+
+/** Where a message went. The app drafts nothing: he sends from his mail client
+ *  or LinkedIn and logs it here. */
+export type OutreachChannel = "email" | "linkedin";
+
+/** "sent" = waiting on them. "no_reply" = closed after the one follow-up went
+ *  unanswered, or sooner by hand. One thread never has two follow-ups. */
+export type OutreachStatus = "sent" | "replied" | "no_reply";
+
+export interface Outreach {
+  /** "out-<base36 time>" when made in the app. */
+  id: string;
+  /** Who it went to, as typed. Not a LedgerPerson link: a row has to stand on
+   *  its own, since most people he writes to are not pipeline contacts. */
+  name: string;
+  company: string | null;
+  channel: OutreachChannel;
+  /** The subject line, or the first line of a LinkedIn note. */
+  what: string;
+  /** Local YYYY-MM-DD the message went. */
+  sent: string;
+  /** Local YYYY-MM-DD the one follow-up went, or null. Never a second. */
+  followedUp: string | null;
+  status: OutreachStatus;
+  note: string | null;
+}
+
 /* ---------------------------------------------------------------- seed + edits */
 
 export interface LedgerSeed {
@@ -190,6 +218,7 @@ export interface LedgerSeed {
   companies: Company[];
   opensource: OpenSource[];
   learning: Learning[];
+  outreach: Outreach[];
   /** Edit ids already folded into the files above. */
   appliedEdits: string[];
 }

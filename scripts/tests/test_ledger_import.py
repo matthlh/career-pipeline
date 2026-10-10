@@ -21,7 +21,7 @@ import store  # noqa: E402
 from jobs import ledger_import  # noqa: E402
 
 PATHS = ("LEDGER_EDITS", "LEDGER_IMPORTED", "LEDGER", "APPLICATIONS", "OPEN_POSTINGS")
-OTHER_KINDS = ("person", "company", "opensource", "learning")
+OTHER_KINDS = ("person", "company", "opensource", "learning", "outreach")
 
 
 def app_row(**kw):
