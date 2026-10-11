@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import type { LearnStatus, Learning as Item, LedgerApi } from "../../ledger/types";
 import { newId } from "../../ledger/apply";
-import { AddForm, Choice, InlineText, Section, Toolbar, matches, todayLocal } from "./common";
+import { AddForm, Choice, InlineText, Section, Toolbar, hrefOf, matches, todayLocal } from "./common";
 import "./learning.css";
 
 /* ------------------------------------------------------------ pure helpers */
@@ -62,16 +62,6 @@ export function quickMove(status: LearnStatus): { label: string; to: LearnStatus
   if (status === "todo") return { label: "Start", to: "learning" };
   if (status === "learning") return { label: "Done", to: "done" };
   return null;
-}
-
-/** A safe href for a stored link: http(s) as given, a bare "docs.foo.dev/x"
- *  gets https://, any other scheme (javascript:, data:) gets no link at all. */
-export function hrefOf(link: string | null): string | null {
-  const s = (link ?? "").trim();
-  if (!s) return null;
-  if (/^https?:\/\//i.test(s)) return s;
-  if (/^[a-z][a-z0-9+.-]*:/i.test(s)) return null;
-  return "https://" + s;
 }
 
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

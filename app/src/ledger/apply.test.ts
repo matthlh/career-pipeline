@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyEdits, newEdit, newId, withDerivedCompanies } from "./apply";
 import type {
-  Application, Company, Edit, Kind, Learning, Ledger, LedgerPerson, LedgerSeed, OpenSource,
+  Application, Chat, Company, Edit, Kind, Learning, Ledger, LedgerPerson, LedgerSeed, OpenSource,
 } from "./types";
 
 function app(over: Partial<Application> = {}): Application {
@@ -30,10 +30,16 @@ function oss(over: Partial<OpenSource> = {}): OpenSource {
 function learn(over: Partial<Learning> = {}): Learning {
   return { id: "learn-1", topic: "Kubernetes", why: null, link: null, status: "todo", note: null, added: "2026-10-01", ...over };
 }
+function chat(over: Partial<Chat> = {}): Chat {
+  return {
+    id: "chat-1", type: "coffee", company: "Acme", who: "Ada", when: "2026-10-12 11:00", where: null,
+    status: "upcoming", prep: null, notes: null, added: "2026-10-01", ...over,
+  };
+}
 function seed(over: Partial<LedgerSeed> = {}): LedgerSeed {
   return {
     applications: [app()], people: [person()], companies: [company(), company({ id: "orphan", name: "Orphan" })],
-    opensource: [oss()], learning: [learn()], outreach: [], appliedEdits: [], ...over,
+    opensource: [oss()], learning: [learn()], outreach: [], chats: [chat()], appliedEdits: [], ...over,
   };
 }
 
@@ -53,7 +59,7 @@ function deepFreeze<T>(o: T): T {
 
 const COLL: Record<Kind, keyof Ledger> = {
   application: "applications", person: "people", company: "companies",
-  opensource: "opensource", learning: "learning", outreach: "outreach",
+  opensource: "opensource", learning: "learning", outreach: "outreach", chat: "chats",
 };
 const ids = (l: Ledger, k: Kind) => (l[COLL[k]] as { id: string }[]).map((x) => x.id);
 const find = (l: Ledger, k: Kind, id: string) =>
@@ -71,6 +77,7 @@ describe("applyEdits basics", () => {
     expect(l.companies).toEqual(s.companies);
     expect(l.opensource).toEqual(s.opensource);
     expect(l.learning).toEqual(s.learning);
+    expect(l.chats).toEqual(s.chats);
   });
 
   it("skips an edit the seed already carries", () => {
@@ -147,6 +154,7 @@ describe("ops on every kind", () => {
     ["company", "orphan", { star: true }],
     ["opensource", "oss-1", { status: "pr open" }],
     ["learning", "learn-1", { status: "learning" }],
+    ["chat", "chat-1", { status: "done", notes: "asked about the stack" }],
   ];
 
   it.each(cases)("%s: add creates a new entity with id = target", (kind) => {
@@ -198,10 +206,12 @@ describe("ops on every kind", () => {
       edit({ kind: "application", target: "app-x", op: "add", fields: { company: "Beta", title: "SWE" } }),
       edit({ kind: "person", target: "p-bo-beta", op: "add", fields: { name: "Bo", company: "Beta" } }),
       edit({ kind: "learning", target: "learn-x", op: "add", fields: { topic: "Rust" }, at: new Date(2026, 9, 4, 12).toISOString() }),
+      edit({ kind: "chat", target: "chat-x", op: "add", fields: { company: "Beta" }, at: new Date(2026, 9, 4, 12).toISOString() }),
     ]);
     expect(find(l, "application", "app-x")).toMatchObject({ status: "saved", referral: "none", events: [], deadline: null });
     expect(find(l, "person", "p-bo-beta")).toMatchObject({ state: "new", canRefer: false, email: null });
     expect(find(l, "learning", "learn-x")).toMatchObject({ status: "todo", added: "2026-10-04" });
+    expect(find(l, "chat", "chat-x")).toMatchObject({ type: "coffee", status: "upcoming", when: null, added: "2026-10-04" });
   });
 });
 
@@ -344,15 +354,15 @@ describe("derived companies", () => {
     expect(l.companies).toEqual([{ id: "beta", name: "Beta", domain: null, why: null, star: false, note: "x" }]);
   });
 
-  it("a set on an unknown person, application, open-source or learning id is still ignored", () => {
+  it("a set on an unknown person, application, open-source, learning or chat id is still ignored", () => {
     const s = seed();
-    const l = applyEdits(s, (["application", "person", "opensource", "learning"] as Kind[]).map((kind) =>
+    const l = applyEdits(s, (["application", "person", "opensource", "learning", "chat"] as Kind[]).map((kind) =>
       edit({ kind, target: "nobody", op: "set", fields: { note: "x" } })));
     expect(l).toEqual(applyEdits(s, []));
   });
 
   it("withDerivedCompanies is pure and a no-op when nothing is missing", () => {
-    const l = deepFreeze({ applications: [app()], people: [], companies: [company()], opensource: [], learning: [], outreach: [] });
+    const l = deepFreeze({ applications: [app()], people: [], companies: [company()], opensource: [], learning: [], outreach: [], chats: [] });
     expect(withDerivedCompanies(l)).toBe(l);
     const bare = deepFreeze({ ...l, companies: [] as Company[] });
     expect(withDerivedCompanies(bare).companies.map((c) => c.id)).toEqual(["acme"]);

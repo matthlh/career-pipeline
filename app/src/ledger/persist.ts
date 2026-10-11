@@ -13,7 +13,7 @@ export const MIGRATED_KEY = "career.ledger.migrated.v1";
  *  as storage.ts, separate object: a view can warn that edits are not sticking. */
 export const ledgerStorage = { ok: true };
 
-const KINDS = new Set<Kind>(["application", "person", "company", "opensource", "learning", "outreach"]);
+const KINDS = new Set<Kind>(["application", "person", "company", "opensource", "learning", "outreach", "chat"]);
 const OPS = new Set<EditOp>(["add", "set", "event", "delete"]);
 
 /* One malformed entry should not take the whole log - or applyEdits - down with it. */
