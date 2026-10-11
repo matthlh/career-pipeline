@@ -21,7 +21,9 @@ PLAN.md
 SCHEDULE.md
 RUNBOOK.md
 STATUS.md
-.claude/
+.claude/*
+# Shared Claude Code settings: commits and PRs carry no Claude attribution.
+!.claude/settings.json
 
 app/node_modules/
 app/dist/
