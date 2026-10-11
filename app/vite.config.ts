@@ -7,8 +7,8 @@ import react from "@vitejs/plugin-react";
 
 /* Two constraints shape this config, and both come from how the app is used.
 
-   base: "./" - the built copy has to work at a GitHub Pages project path
-   (/groundwork/) and at a file:// path, without being told which.
+   base: "./" - the built copy has to work at the site root on Vercel and at a
+   file:// path, without being told which.
 
    format: "iife" plus the classicScript plugin below - a <script type="module">
    is blocked by CORS on file://, so a module build would mean the app could
@@ -19,9 +19,9 @@ function classicScript() {
     name: "classic-script",
     transformIndexHtml(html: string) {
       /* data.example.js has a fixed name - index.html references it by hand -
-         so nothing about it changes when its contents do, and Pages serves
-         max-age=600. A visitor would spend ten minutes running new code against
-         the previous demo data, which looks like a bug rather than a cache.
+         so nothing about it changes when its contents do, and any cache keyed
+         on the URL keeps serving the old one. A visitor would run new code
+         against the previous demo data, which looks like a bug rather than a cache.
          data.js is deliberately not stamped: cron rewrites it between builds,
          so a build-time stamp there would pin the browser to stale real data. */
       const seed = join(process.cwd(), "public", "data.example.js");
