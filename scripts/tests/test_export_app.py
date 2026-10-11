@@ -210,7 +210,7 @@ class ExampleData(unittest.TestCase):
 
     def test_is_stamped_as_the_demo(self):
         # app/src/seed.ts keys DEMO off this exact value rather than the
-        # hostname, so one build behaves the same from file://, dev and Pages.
+        # hostname, so one build behaves the same from file://, dev and Vercel.
         self.assertEqual(self._example()["generated"], "example")
 
     def test_demo_progress_points_at_people_that_exist(self):
