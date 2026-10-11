@@ -1,0 +1,90 @@
+name: Test and deploy
+
+# The app is a Vite + TypeScript build now, so Pages gets app/dist rather than
+# app/ itself. app/public/data.js holds real addresses and is gitignored, so a
+# clean CI checkout simply does not have it: the build falls back to
+# data.example.js, which only assigns window.SEED when the real file is absent.
+# That is the mechanism, and the leak check below is the belt to its braces.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a running deploy - a half-published site is worse than a slow one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      # The pipeline has no dependencies on purpose, so there is nothing to install.
+      - name: Pipeline tests
+        run: python3 -m unittest discover -s scripts/tests -v
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+        working-directory: app
+
+      - name: Types
+        run: npx tsc -b --noEmit
+        working-directory: app
+
+      - name: App tests
+        run: npm test
+        working-directory: app
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+        working-directory: app
+
+      - run: npm run build
+        working-directory: app
+
+      # The last gate before anything becomes public. Only RFC 2606 reserved
+      # domains may ship; anything else is a real person's inbox and fails the
+      # deploy rather than the review.
+      - name: Refuse to publish real addresses
+        run: ./scripts/leakcheck.sh app/dist
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

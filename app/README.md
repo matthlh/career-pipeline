@@ -20,7 +20,7 @@ public/data.example.js   twelve invented people, committed, loads only if data.j
 ```bash
 npm install
 npm run dev        # localhost, reads public/data.js live - no rebuild after a cron refresh
-npm run build      # dist/ - what Vercel publishes, and openable from file://
+npm run build      # dist/ - what Pages publishes, and openable from file://
 npm test           # the rules engine
 npm run typecheck
 ```
@@ -58,24 +58,19 @@ email address, merged over the seed rather than replacing it. Re-running
 `export-app` adds new people without touching anything already tracked. Theme is
 a separate key, so it does not travel in an export.
 
-## Publishing on Vercel
+## Publishing to GitHub Pages
 
-Automatic. Vercel is connected to the GitHub repo and deploys every push to
-`main` to production; other branches get a preview URL. Nothing to click.
+Automatic. `.github/workflows/pages.yml` deploys on every push to `main`, to
+<https://matthlh.github.io/groundwork/>. Nothing to click.
 
-`vercel.json` at the repo root is the whole build: install in `app/`, run the app
-tests, build (`tsc -b` typechecks first), then run `scripts/leakcheck.sh` over
-`app/dist`. It fails the build on any address whose domain is not RFC 2606
-reserved, so a real address can only reach the public site by getting past a red
-build. GitHub Actions (`.github/workflows/test.yml`) runs the pipeline tests too.
+Tests and typecheck run first; the deploy only runs if they pass. The workflow
+then builds `app/dist` and, before uploading anything, runs `scripts/leakcheck.sh`
+over the output — it fails the deploy on any address whose domain is not RFC 2606
+reserved. A real address can only reach the public site by getting past a red build.
 
-`public/data.js` is gitignored and so is never in the clone Vercel builds from,
-which is what makes the published copy safe by construction: it falls back to the
-example people automatically. The leak check is the belt to that braces.
-
-Deploy through the Git connection only. `.vercelignore` allows only `app/` and the
-leak check through, because the `vercel` CLI uploads a folder's files whether or
-not git ignores them, and from a laptop that would include the real data.
+`public/data.js` is gitignored and so is never in a CI checkout, which is what
+makes the published copy safe by construction: it falls back to the example
+people automatically. The leak check is the belt to that braces.
 
 To use the published copy with your own data: open the local copy, hit **Export
 progress** (the file carries people, counts and progress together), then

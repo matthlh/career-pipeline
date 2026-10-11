@@ -156,8 +156,8 @@ you find out weeks later by not having sent them anything.
   Mostly: state that is easy to enter and impossible to leave. `queued` was one
   of those, and so was "we looked once and found nobody".
 - `scripts/leakcheck.sh` — nothing git tracks contains an address outside the
-  RFC 2606 reserved domains. The Vercel build runs the same script over the
-  built artifact.
+  RFC 2606 reserved domains. The deploy runs the same script over the built
+  artifact.
 - `scripts/tests/test_llm.py` — which failures halt a run and which lose one
   record. That distinction has cost a backlog once already, so every branch of
   it is pinned. Nothing there runs the CLI.
@@ -177,7 +177,7 @@ demo data and nobody's actual inbox ends up in a public repository.
 
 Worth being precise about, because the repo is public and the data is not.
 
-**Nothing you track is ever uploaded.** The site is static files on Vercel — HTML, CSS
+**Nothing you track is ever uploaded.** GitHub Pages is static hosting — HTML, CSS
 and JavaScript, no server and no database. There is no endpoint for the app to send
 anything to, and it does not have one to try.
 
@@ -194,6 +194,9 @@ imported; their browser and yours share nothing.
 So the published URL is usable as your real tool: open it, **Import** an export
 from your machine, and it becomes your copy. Three caveats worth knowing first:
 
+- The origin `matthlh.github.io` is shared by every project published under that
+  account, so another Pages site *of your own* could read that storage. Nobody
+  else's can.
 - It is stored unencrypted. Anyone with your unlocked browser can read it.
 - It does not sync. Marking someone sent on your phone will not appear on your
   laptop — export and import when you switch. That is the point at which a real
