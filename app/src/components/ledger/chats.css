@@ -1,0 +1,36 @@
+/* Chats view. Tokens from style.css only; shared pieces live in ledger.css. */
+
+.ch-toggle{display:inline-flex;align-items:center;gap:8px;min-height:36px;font-size:14px;
+  color:var(--dim);cursor:pointer;user-select:none}
+.ch-toggle input{width:18px;height:18px;margin:0;accent-color:var(--go)}
+
+.ch-adds{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:flex-start;margin-bottom:14px}
+.ch-adds > .lg-form{flex:1 1 100%}
+.ch-lane-empty{margin:0 0 8px;padding:10px 2px}
+
+.ch-card{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ch-upcoming{border-color:var(--go)}
+.ch-overdue{border-color:var(--warn-line)}
+.ch-done,.ch-cancelled{opacity:.85}
+.ch-cancelled .ch-title{text-decoration:line-through;text-decoration-color:var(--dim)}
+
+.ch-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.ch-title{font-size:15px;overflow-wrap:anywhere}
+.ch-who{overflow-wrap:anywhere}
+
+.ch-when{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.ch-when-text{font-weight:650;font-variant-numeric:tabular-nums}
+.ch-field{font-size:13px;min-width:0}
+.ch-field .lg-inline{color:var(--dim);overflow-wrap:anywhere;word-break:break-word}
+.ch-where{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.ch-join{color:var(--p2);font-weight:600;padding:6px 0;text-decoration:none}
+.ch-join:hover{text-decoration:underline}
+
+/* Prep and notes are checklists: keep their line breaks. */
+.ch-block{border-top:1px solid var(--line);padding-top:6px;min-width:0}
+.ch-block-label{font-size:12px;font-weight:650;color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
+.ch-block .lg-inline{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;width:100%}
+.ch-card .lg-input{width:100%}
+
+.ch-actions{margin-top:4px}
+.ch-remove{margin-left:auto;color:var(--red)}

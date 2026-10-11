@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Learning } from "../../ledger/types";
+import { hrefOf } from "./common";
 import {
-  LEARN_ORDER, fmtAdded, filterLearning, hrefOf, learnCounts, learnLanes, newLearning, quickMove,
+  LEARN_ORDER, fmtAdded, filterLearning, learnCounts, learnLanes, newLearning, quickMove,
   summaryLine,
 } from "./Learning";
 

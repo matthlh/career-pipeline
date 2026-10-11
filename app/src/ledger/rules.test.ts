@@ -257,6 +257,7 @@ describe("companyView", () => {
     outreach: [],
     opensource: [os("o1", "acme-ai"), os("o2", "Acme AI"), os("o3", null), os("o4", "beta")],
     learning: [],
+    chats: [],
   };
 
   it("collects everything that names the company", () => {

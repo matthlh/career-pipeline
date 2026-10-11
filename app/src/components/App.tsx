@@ -8,6 +8,7 @@ import { sentCounts } from "../ledger/todo";
 import { connectFolderForWrites, useLedger } from "../ledger/useLedger";
 import type { LedgerApi } from "../ledger/types";
 import { Applications } from "./ledger/Applications";
+import { Chats } from "./ledger/Chats";
 import { Learning } from "./ledger/Learning";
 import { Outreach } from "./ledger/Outreach";
 import { TemplatesTab } from "./TemplatesTab";
@@ -15,14 +16,17 @@ import type { Seed } from "../types";
 
 const THEME_LABEL: Record<Theme, string> = { auto: "System", light: "Light", dark: "Dark" };
 
-/* Four tabs. People, Companies and Open source were views too (Oct 4-9),
+/* Five tabs. People, Companies and Open source were views too (Oct 4-9),
    and went: he is not going to work contacts by hand, so a screen for them was
    a screen to feel bad in front of. The data behind them is still in the seed.
    Outreach (Oct 10) is the other thing: not a list of people to work, a log of
-   the messages that actually went, and the day each one's follow-up is due. */
-type Tab = "applications" | "outreach" | "learning" | "templates";
+   the messages that actually went, and the day each one's follow-up is due.
+   Chats is where a reply leads: a booked call is a date he has to show up
+   prepared for. */
+type Tab = "applications" | "outreach" | "chats" | "learning" | "templates";
 const TABS: [Tab, string][] = [
-  ["applications", "Applications"], ["outreach", "Outreach"], ["learning", "Learning"], ["templates", "Templates"],
+  ["applications", "Applications"], ["outreach", "Outreach"], ["chats", "Chats"], ["learning", "Learning"],
+  ["templates", "Templates"],
 ];
 
 /* Session-scoped, like the demo switch: a reload lands where you were, a fresh
@@ -72,7 +76,7 @@ export function App() {
     saveTab(t);
   }
 
-  /* Four tabs fit any phone, but the bar still scrolls if it ever has to;
+  /* Five tabs are wider than a phone, so the bar scrolls sideways;
      keep the current tab in view without moving the page itself. */
   useEffect(() => {
     const bar = tabsRef.current;
@@ -286,6 +290,7 @@ export function App() {
 
       {tab === "applications" && <Applications api={api} now={now} />}
       {tab === "outreach" && <Outreach api={api} now={now} />}
+      {tab === "chats" && <Chats api={api} now={now} />}
       {tab === "learning" && <Learning api={api} now={now} />}
       {tab === "templates" && <div className="narrow"><TemplatesTab /></div>}
 

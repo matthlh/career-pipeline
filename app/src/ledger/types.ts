@@ -2,7 +2,7 @@
    this file; change it here first and the rest follows.
 
    What the ledger is: one place to see every company, person, application,
-   open-source thread and thing-to-learn in the job search, and to change their
+   open-source thread, thing-to-learn and chat in the job search, and to change their
    state. It replaces the outreach queue as the app's main view.
 
    ---------------------------------------------------------------------------
@@ -24,7 +24,7 @@
                                    per line: {"kind": Kind, "id": string, ...fields}.
                                    A "person" or "company" row here is an overlay merged
                                    over the pipeline record with the same id (or a new one).
-                                   "opensource", "learning" and "outreach" rows exist only here.
+                                   "opensource", "learning", "outreach" and "chat" rows exist only here.
         state/ledger_imported.json {"applied": [edit ids]} -> LedgerSeed.appliedEdits
       Companies are derived: every company named by an application or a person, plus every
       "company" row in data/ledger.jsonl. Company.id = companyId(name).
@@ -47,7 +47,7 @@
                      "delete"           -> a saved posting becomes status "skipped" in
                                            open_postings.jsonl; a submitted application is
                                            never deleted (reported, then marked imported)
-        person/company/opensource/learning/outreach
+        person/company/opensource/learning/outreach/chat
                      "add" | "set"      -> upsert the row in data/ledger.jsonl
                                    "delete" -> the row becomes a tombstone
                                            {"kind", "id", "deleted": true}; export leaves the
@@ -63,7 +63,7 @@
    them exactly as spelled here (camelCase), even though the jsonl files are snake_case.
 */
 
-export type Kind = "application" | "person" | "company" | "opensource" | "learning" | "outreach";
+export type Kind = "application" | "person" | "company" | "opensource" | "learning" | "outreach" | "chat";
 
 /* ---------------------------------------------------------------- applications */
 
@@ -210,6 +210,35 @@ export interface Outreach {
   note: string | null;
 }
 
+/* ---------------------------------------------------------------- chats */
+
+/** A coffee chat (someone he reached out to) or an interview (a company's process). */
+export type ChatType = "coffee" | "interview";
+
+export type ChatStatus = "upcoming" | "done" | "cancelled";
+
+export interface Chat {
+  /** "chat-<base36 time>" when made in the app. */
+  id: string;
+  /** Not "kind": every ledger.jsonl row already uses that key for the entity kind. */
+  type: ChatType;
+  /** Company display name. */
+  company: string;
+  /** Who it is with: a name, or "two engineers on the platform team". */
+  who: string | null;
+  /** "2026-10-12 11:00", local Pacific. null = not booked yet. */
+  when: string | null;
+  /** Meet or Teams link, or a place. */
+  where: string | null;
+  status: ChatStatus;
+  /** Before: research, questions to ask, stories to tell. Starts as a checklist. */
+  prep: string | null;
+  /** After: what he learned, what to follow up on. */
+  notes: string | null;
+  /** Local YYYY-MM-DD it was added. */
+  added: string;
+}
+
 /* ---------------------------------------------------------------- seed + edits */
 
 export interface LedgerSeed {
@@ -219,6 +248,7 @@ export interface LedgerSeed {
   opensource: OpenSource[];
   learning: Learning[];
   outreach: Outreach[];
+  chats: Chat[];
   /** Edit ids already folded into the files above. */
   appliedEdits: string[];
 }

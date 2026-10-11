@@ -1006,6 +1006,56 @@ window.SEED = window.SEED || {
     "note": null
    }
   ],
+  "chats": [
+   {
+    "id": "chat-mujpev40",
+    "type": "interview",
+    "company": "Bellwether Labs",
+    "who": "Tomas Lindqvist and one other platform engineer",
+    "when": "2026-10-20 13:00",
+    "where": "https://example.com/meet/bellwether",
+    "status": "upcoming",
+    "prep": "Logistics\n- 60 minutes, video. Test audio and camera 10 minutes before\nThe role\n- Platform team: deploy tooling and the internal service mesh. Go and Kubernetes in the posting\n- Why: I like making other engineers faster\nStories (situation, what you did, result)\n- The flaky CI job I traced to a shared temp dir\n- Shipping the eval harness end to end\n- Disagreeing about a retry policy, and the data that settled it\n- The migration I rolled back, and the checklist I wrote after\nTechnical\n- Kubernetes basics (Learning tab); one practice problem a day\nQuestions to ask them\n- What would my first project be?\n- How do you tell a great intern from a good one at the end of the term?\nAfter\n- Thank-you note the same day",
+    "notes": null,
+    "added": "2026-10-08"
+   },
+   {
+    "id": "chat-mujq1k80",
+    "type": "coffee",
+    "company": "Fernbank Systems",
+    "who": "Marcus Alvi",
+    "when": "2026-10-14 17:30",
+    "where": "https://example.com/meet/fernbank",
+    "status": "upcoming",
+    "prep": "Before\n- Marcus works on fernbank/ledger-rs; met at the alumni night, and he replied on LinkedIn\n- 30-second intro: third year, last internship, the eval harness\nQuestions (pick 2 or 3)\n- What kind of projects do interns usually get to work on?\n- What does a strong intern do in their first month?\n- Any suggestions on what to brush up on before the interview?\nClose\n- Is there anyone else you'd suggest I talk to?\nAfter\n- Thank-you note within 24 hours that mentions one thing they said",
+    "notes": null,
+    "added": "2026-10-09"
+   },
+   {
+    "id": "chat-mu8x2c00",
+    "type": "coffee",
+    "company": "Stellwater",
+    "who": "Priya Raghunathan",
+    "when": "2026-10-02 12:00",
+    "where": null,
+    "status": "done",
+    "prep": "Questions\n- What kind of projects do interns usually get to work on?\n- Any suggestions on what to brush up on before the interview?",
+    "notes": "Interns ship to production in week two. Brush up on Postgres indexing and EXPLAIN. Sent a thank-you the same evening.",
+    "added": "2026-09-28"
+   },
+   {
+    "id": "chat-mubk7s80",
+    "type": "coffee",
+    "company": "Quarterturn",
+    "who": "Nadia Beaulieu",
+    "when": "2026-10-06 16:00",
+    "where": null,
+    "status": "cancelled",
+    "prep": null,
+    "notes": "Called off after the rejection; she offered to reconnect in the spring.",
+    "added": "2026-10-01"
+   }
+  ],
   "appliedEdits": []
  }
 };

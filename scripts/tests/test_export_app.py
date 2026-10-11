@@ -264,6 +264,7 @@ class ExampleData(unittest.TestCase):
             "opensource": {"id"} | set(export_app.OSS_DEFAULTS),
             "learning": {"id"} | set(export_app.LEARN_DEFAULTS),
             "outreach": {"id"} | set(export_app.OUTREACH_DEFAULTS),
+            "chats": {"id"} | set(export_app.CHAT_DEFAULTS),
         }
         for key, fields in shapes.items():
             self.assertTrue(ledger[key], key)
@@ -277,7 +278,7 @@ class ExampleData(unittest.TestCase):
 
 
 LEDGER_KEYS = {"applications", "people", "companies", "opensource", "learning",
-               "outreach", "appliedEdits"}
+               "outreach", "chats", "appliedEdits"}
 
 STORE_PATHS = {"APPLICATIONS": "data/applications.jsonl",
                "OPEN_POSTINGS": "data/open_postings.jsonl",
@@ -445,6 +446,10 @@ class LedgerSeed(unittest.TestCase):
             {"kind": "opensource", "id": "oss-2", "project": "dropped one"},
             {"kind": "opensource", "id": "oss-2", "deleted": True},
             {"kind": "learning", "id": "learn-1", "topic": "Kubernetes basics"},
+            {"kind": "chat", "id": "chat-1", "type": "interview", "company": "Acme",
+             "when": "2026-10-16 12:00"},
+            {"kind": "chat", "id": "chat-2", "company": "Initech"},
+            {"kind": "chat", "id": "chat-2", "deleted": True},
         ]
         ledger = build(contacts=contacts, rows=rows,
                        applied=[{"job_id": "9", "company": "Globex", "title": "Intern"}])
@@ -463,6 +468,10 @@ class LedgerSeed(unittest.TestCase):
         self.assertEqual(ledger["opensource"][0]["status"], "working")
         self.assertEqual(ledger["learning"][0]["status"], "todo")
         self.assertEqual(set(ledger["learning"][0]), {"id"} | set(export_app.LEARN_DEFAULTS))
+        self.assertEqual([c["id"] for c in ledger["chats"]], ["chat-1"])
+        self.assertEqual((ledger["chats"][0]["type"], ledger["chats"][0]["status"],
+                          ledger["chats"][0]["when"]), ("interview", "upcoming", "2026-10-16 12:00"))
+        self.assertEqual(set(ledger["chats"][0]), {"id"} | set(export_app.CHAT_DEFAULTS))
 
 
 if __name__ == "__main__":

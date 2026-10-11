@@ -15,10 +15,10 @@ export function Chip({ tone = "dim", children, title }: { tone?: Tone; children:
 /** Text that turns into an input on click and saves on blur or Enter.
  *  Escape cancels. Empty string saves as null. */
 export function InlineText({
-  value, placeholder, onSave, multiline = false, label,
+  value, placeholder, onSave, multiline = false, rows = 3, label,
 }: {
   value: string | null; placeholder: string; onSave: (v: string | null) => void;
-  multiline?: boolean; label?: string;
+  multiline?: boolean; rows?: number; label?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
@@ -45,7 +45,7 @@ export function InlineText({
       if (e.key === "Enter" && (!multiline || e.metaKey || e.ctrlKey)) { e.preventDefault(); commit(); }
     },
   };
-  return multiline ? <textarea rows={3} {...common} /> : <input {...common} />;
+  return multiline ? <textarea rows={rows} {...common} /> : <input {...common} />;
 }
 
 /** A labelled native select. Native on purpose: it is the one control that is
@@ -98,7 +98,7 @@ export function Toolbar({ query, onQuery, placeholder, children }: {
 export function AddForm({ label, fields, onAdd }: {
   label: string;
   fields: {
-    name: string; placeholder: string; type?: "text" | "url" | "date";
+    name: string; placeholder: string; type?: "text" | "url" | "date" | "datetime-local";
     options?: readonly { value: string; label: string }[];
   }[];
   onAdd: (values: Record<string, string | null>) => void;
@@ -163,6 +163,16 @@ export function fmtWhen(at: string): string {
   }
   const d = fmtDeadline({ deadline: s.slice(0, 10) });
   return d === "no date" ? s : d;
+}
+
+/** A safe href for a stored link: http(s) as given, a bare "docs.foo.dev/x"
+ *  gets https://, any other scheme (javascript:, data:) gets no link at all. */
+export function hrefOf(link: string | null): string | null {
+  const s = (link ?? "").trim();
+  if (!s) return null;
+  if (/^https?:\/\//i.test(s)) return s;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(s)) return null;
+  return "https://" + s;
 }
 
 /** Today as local YYYY-MM-DD, for "touched today" and "added" stamps. */

@@ -28,6 +28,7 @@ const COLLECTION = {
   opensource: "opensource",
   learning: "learning",
   outreach: "outreach",
+  chat: "chats",
 } as const satisfies Record<Kind, keyof Ledger>;
 
 const KINDS = Object.keys(COLLECTION) as Kind[];
@@ -57,6 +58,9 @@ function defaults(kind: Kind, id: string, at: string): Record<string, unknown> {
     case "outreach":
       return { name: "", company: null, channel: "email", what: "", sent: added, followedUp: null,
         status: "sent", note: null };
+    case "chat":
+      return { type: "coffee", company: "", who: null, when: null, where: null, status: "upcoming",
+        prep: null, notes: null, added };
   }
 }
 
@@ -160,6 +164,7 @@ export function applyEdits(seed: LedgerSeed, edits: readonly Edit[]): Ledger {
     opensource: t.opensource as unknown as Ledger["opensource"],
     learning: t.learning as unknown as Ledger["learning"],
     outreach: t.outreach as unknown as Ledger["outreach"],
+    chats: t.chat as unknown as Ledger["chats"],
   });
 }
 
@@ -195,11 +200,11 @@ export function newEdit(e: Omit<Edit, "id" | "at">, now: Date = new Date()): Edi
   return { ...e, id: `e-${base36(now)}-${random36(4)}`, at: now.toISOString() };
 }
 
-/** "app-<base36 ms>", "oss-…", "learn-…", "out-…". A person made by hand gets
+/** "app-<base36 ms>", "oss-…", "learn-…", "out-…", "chat-…". A person made by hand gets
  *  "p-<slug of name>-<slug of company>" (types.ts), falling back to time. */
-export function newId(prefix: "app" | "oss" | "learn" | "out" | "p", now?: Date): string;
+export function newId(prefix: "app" | "oss" | "learn" | "out" | "chat" | "p", now?: Date): string;
 export function newId(prefix: "p", name: string, company?: string | null): string;
-export function newId(prefix: "app" | "oss" | "learn" | "out" | "p", a?: Date | string, company?: string | null): string {
+export function newId(prefix: "app" | "oss" | "learn" | "out" | "chat" | "p", a?: Date | string, company?: string | null): string {
   if (prefix === "p" && typeof a === "string" && companyId(a)) {
     return ["p", companyId(a), companyId(company ?? "")].filter(Boolean).join("-");
   }
