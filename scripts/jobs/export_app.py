@@ -1,6 +1,6 @@
 """Flatten the store into app/data.js for the React app.
 
-The app is static and must work from file:// as well as Vercel, so the
+The app is static and must work from file:// as well as GitHub Pages, so the
 data ships as a <script src> that assigns a global. fetch() would fail on
 file:// and there is no server in either target.
 
@@ -21,7 +21,7 @@ import store
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # app/ is a Vite project now: public/ is copied to the build output verbatim,
 # so writing here means both `npm run dev` and `npm run build` pick the real
-# data up with no extra step. It is gitignored, and the Vercel build runs from
+# data up with no extra step. It is gitignored, and the Pages deploy runs from
 # a clean checkout where it does not exist, which is what makes the published
 # copy fall back to the invented people.
 OUT = os.path.join(ROOT, "app", "public", "data.js")
