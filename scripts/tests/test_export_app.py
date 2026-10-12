@@ -324,6 +324,35 @@ class LedgerSeed(unittest.TestCase):
     reads these field names verbatim, so a key that drifts here does not crash
     anything - a column just goes blank."""
 
+    def test_outreach_lists_everyone_the_contact_log_says_was_contacted(self):
+        contacts = [
+            {"email": "ken@mailchannels.example", "name": "Ken", "company_name": "MailChannels",
+             "state": "replied", "contacted_at": "2026-10-10T03:18:56Z", "replied_at": "2026-10-11T05:40:59Z",
+             "channel": "email", "subject": "MailChannels co-op"},
+            {"email": "jo@khan.example", "name": "Jo", "state": "contacted",
+             "contacted_at": "2026-10-12T08:51:00Z", "channel": "email", "subject": "Perseus question"},
+            {"email": None, "domain": "flick.example", "name": "Ray", "state": "awaiting_reply",
+             "last": "2026-09-30", "channel": "linkedin_inmail"},
+            {"email": "draft@x.example", "name": "Draft", "state": "drafted", "channel": "email"},
+            {"email": "new@x.example", "name": "New", "state": "new"},
+        ]
+        out = {o["name"]: o for o in build(contacts=contacts)["outreach"]}
+        self.assertEqual(set(out), {"Ken", "Jo", "Ray"})  # drafts and new contacts were never sent
+        self.assertEqual(out["Ken"]["status"], "replied")
+        # 03:18 UTC on the 10th is the evening of the 9th in Vancouver, where this runs.
+        self.assertEqual(out["Ken"]["sent"], export_app._local_day("2026-10-10T03:18:56Z"))
+        self.assertEqual(out["Jo"]["status"], "sent")
+        self.assertEqual(out["Ray"]["channel"], "linkedin")
+        self.assertEqual(out["Ray"]["sent"], "2026-09-30")
+
+    def test_an_app_edit_overlays_a_row_made_from_the_contact_log(self):
+        contacts = [{"email": "jo@khan.example", "name": "Jo", "state": "contacted",
+                     "contacted_at": "2026-10-12T08:51:00Z", "channel": "email"}]
+        rows = [{"kind": "outreach", "id": "c-jo-khan-example", "status": "replied", "note": "booked"}]
+        [o] = build(contacts=contacts, rows=rows)["outreach"]
+        self.assertEqual((o["status"], o["note"]), ("replied", "booked"))
+        self.assertEqual(o["sent"], export_app._local_day("2026-10-12T08:51:00Z"))
+
     def test_an_empty_store_still_has_every_key(self):
         with isolated_store():
             ledger = export_app.load_ledger()

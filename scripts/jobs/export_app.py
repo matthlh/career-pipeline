@@ -385,6 +385,60 @@ def _fields(row):
     return dict((k, v) for k, v in row.items() if k not in ("kind", "id", "deleted"))
 
 
+# A contact the pipeline has actually written to. These states are terminal in
+# store.TERMINAL_STATES; "drafted" and "queued" are not sends and stay out.
+SENT_STATES = ("contacted", "awaiting_reply", "replied", "bounced", "dead")
+
+
+def _local_day(ts):
+    """'2026-10-10T03:18:56Z' -> '2026-10-09' on a Pacific machine: the day he
+    sent it, not the UTC day. A bare date passes through; junk gives None."""
+    if not ts:
+        return None
+    try:
+        dt = datetime.datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone()
+    return dt.strftime("%Y-%m-%d")
+
+
+def outreach_from_contacts(contacts):
+    """Outreach rows for everyone contacts.jsonl says was really contacted.
+
+    Before this the Outreach tab showed only rows typed into the app, so the
+    sessions that send email and log it in contacts.jsonl left it empty. A row
+    made here is keyed by address (or domain + name for LinkedIn-only people),
+    so an app edit to it - marking a reply, noting the follow-up - overlays it
+    the same way it overlays a row the app made itself.
+    """
+    rows = {}
+    for c in contacts:
+        state = c.get("state")
+        if state not in SENT_STATES:
+            continue
+        sent = _local_day(c.get("contacted_at") or c.get("sent_at")) or (c.get("last") or "")
+        if not sent:
+            continue
+        key = (c.get("email") or "%s %s" % (c.get("domain") or "", c.get("name") or "")).lower()
+        oid = "c-" + re.sub(r"[^a-z0-9]+", "-", key).strip("-")
+        channel = "linkedin" if "linkedin" in (c.get("channel") or "") else "email"
+        if state == "replied" or c.get("replied_at"):
+            status = "replied"
+        elif state in ("bounced", "dead"):
+            status = "no_reply"
+        else:
+            status = "sent"
+        rows[oid] = dict(OUTREACH_DEFAULTS, id=oid,
+                         name=c.get("name") or c.get("email") or "",
+                         company=c.get("company_name") or c.get("domain"),
+                         channel=channel, what=c.get("subject") or "", sent=sent,
+                         followedUp=_local_day(c.get("followed_up_at")),
+                         status=status, note=c.get("note"))
+    return rows
+
+
 def build_ledger(applied, postings, contacts, companies, rows, applied_edits=()):
     """LedgerSeed from the store's rows. Pure."""
     folded = _fold(rows)
@@ -456,7 +510,8 @@ def build_ledger(applied, postings, contacts, companies, rows, applied_edits=())
         "companies": list(comps.values()),
         "opensource": list(overlay("opensource", {}, OSS_DEFAULTS).values()),
         "learning": list(overlay("learning", {}, LEARN_DEFAULTS).values()),
-        "outreach": list(overlay("outreach", {}, OUTREACH_DEFAULTS).values()),
+        "outreach": list(overlay("outreach", outreach_from_contacts(contacts),
+                                    OUTREACH_DEFAULTS).values()),
         "chats": list(overlay("chat", {}, CHAT_DEFAULTS).values()),
         "appliedEdits": [str(e) for e in applied_edits],
     }
